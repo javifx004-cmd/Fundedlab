@@ -132,7 +132,7 @@ export function candleChart(opts, mark) {
   // `show`: animación vela a vela (vídeos). Escala fija con todas las velas; solo se dibujan las primeras `show`.
   const levels = (opts.levels || []).filter((l) => show == null || (l.from ?? 0) < show);
   const marks = (opts.marks || []).filter((m) => show == null || m.i < show);
-  const W = opts.wide ? 1040 : 760, H = opts.wide ? 400 : 380, L = 14, R = 150, T = 18, B = 34;
+  const W = opts.wide ? 1040 : 760, H = opts.tall ? 720 : opts.wide ? 400 : 380, L = 14, R = opts.tall ? 178 : 150, T = 18, B = 34;
   const shown = cut == null ? candles : candles.slice(0, cut);
   const prices = shown.flatMap((k) => [k.h, k.l]).concat(levels.map((l) => l.price));
   let max = Math.max(...prices), min = Math.min(...prices);
@@ -373,22 +373,23 @@ export const EXAMPLES = {
 // Precio en formato del curso: 20.040,50
 const P = fmtPrice;
 
-function exampleChart(id, mark, question, show = null, limit = null, wide = false) {
+function exampleChart(id, mark, question, show = null, limit = null, wide = false, tall = false, neutral = false) {
   const ex = EXAMPLES[id];
   const { sim } = ex;
   const candles = limit ? ex.candles.slice(0, limit) : ex.candles;
-  const range = { from: RANGE_FROM, to: RANGE_TO, cls: sim.valid ? '' : 'c-bad' };
+  // En la versión de pregunta el rango no se marca como inválido: eso es lo que tiene que decidir el alumno.
+  const range = { from: RANGE_FROM, to: RANGE_TO, cls: sim.valid || question || neutral ? '' : 'c-bad' };
   const cut = question ? RANGE_TO + 1 : null;
   const levels = [], marks = [];
   const lastRangeCandle = RANGE_TO;
   if (id === 'ej-ancho') {
-    range.label = `Rango ${P(sim.size)} pts: no se opera`;
+    range.label = question || neutral ? `Rango ${P(sim.size)} pts` : `Rango ${P(sim.size)} pts: no se opera`;
   } else if (id === 'ej-antes') {
     // Compresión de 15:15 a 15:24 y escapada antes de la apertura: el rango queda invalidado.
     range.to = ex.shapeTo;
     range.label = 'Compresión 15:15–15:24';
     const i = ex.candles.findIndex((k, j) => j > ex.shapeTo && k.c > ex.hi + 10);
-    marks.push({ i, price: ex.candles[i].c, label: `${ex.candles[i].t}: sale antes de la apertura`, cls: 'c-dn-f', pos: 'below' });
+    if (!question && !neutral) marks.push({ i, price: ex.candles[i].c, label: `${ex.candles[i].t}: sale antes de la apertura`, cls: 'c-dn-f', pos: 'below' });
   } else if (id === 'ej-cierre') {
     // Mismo día con los dos métodos: la mecha activa el buy stop, pero ninguna vela cierra por encima del rango.
     const c = ex.close;
@@ -423,7 +424,7 @@ function exampleChart(id, mark, question, show = null, limit = null, wide = fals
       }
     }
   }
-  return candleChart({ candles, range, levels, marks: marks.filter((m) => m.i < candles.length), cut, show, wide, title: question ? 'Situación a las 15:30' : 'Resolución' }, mark);
+  return candleChart({ candles, range, levels, marks: marks.filter((m) => m.i < candles.length), cut, show, wide, tall, title: question ? 'Situación a las 15:30' : 'Resolución' }, mark);
 }
 
 // Plan del ejemplo de promediado (se calcula a partir de las velas para que todo cuadre).
@@ -464,8 +465,8 @@ export const FIGURES = {
   breakout: (mark) => exampleChart('ej-largo', mark, false),
 };
 
-export function renderFigure(id, mark, { question = false, show = null, limit = null, wide = false } = {}) {
-  if (EXAMPLES[id]) return exampleChart(id, mark, question, show, limit, wide);
+export function renderFigure(id, mark, { question = false, show = null, limit = null, wide = false, tall = false, neutral = false } = {}) {
+  if (EXAMPLES[id]) return exampleChart(id, mark, question, show, limit, wide, tall, neutral);
   const f = FIGURES[id];
   return f ? f(mark) : '';
 }

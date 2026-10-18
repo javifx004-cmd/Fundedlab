@@ -15,7 +15,8 @@
     "grant": "node scripts/grant.js",
     "test": "node --test test/*.test.js",
     "videos": "node scripts/make-videos.js",
-    "brochure": "node scripts/make-brochure.js"
+    "brochure": "node scripts/make-brochure.js",
+    "social": "node scripts/make-social.js"
   },
   "dependencies": {
     "@libsql/client": "^0.15.15",
