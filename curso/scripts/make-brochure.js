@@ -92,6 +92,12 @@ p { color: var(--text-2); margin: 0 0 3mm; line-height: 1.55; }
 .faq { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm 6mm; margin-top: 6mm; }
 .faq h4 { margin: 0 0 1mm; font-size: 10.5pt; }
 .faq p { font-size: 9.5pt; margin: 0; }
+.tl { display: grid; gap: 2.4mm; margin: 4mm 0 5mm; }
+.tl > div { display: grid; grid-template-columns: 24mm 1fr; gap: 4mm; align-items: start; background: var(--surface); border: 1px solid var(--line); border-radius: 3mm; padding: 3mm 4mm; }
+.tl span { font-weight: 800; color: var(--brand); font-size: 12pt; }
+.tl p { margin: 0; font-size: 10.5pt; }
+.tl b { color: var(--text); }
+.rules td b { color: var(--text); }
 .legal { font-size: 8pt; color: var(--muted); margin-top: 6mm; line-height: 1.5; }
 `;
 
@@ -101,12 +107,29 @@ const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><style>
   <div class="frame"></div>
   <img class="logo" src="${icon}" alt="">
   <div class="brandname">Funded<b>_lab</b></div>
-  <div class="kick">Curso de trading de futuros</div>
-  <h1>Estrategia de ruptura<br>15:15 – 15:30</h1>
+  <div class="kick">Curso de trading de futuros · Estrategia de ruptura 15:15 – 15:30</div>
+  <h1>Deja de quemar<br>cuentas de fondeo</h1>
   <div class="rule"></div>
-  <p class="lead">Del primer gráfico de velas a la operativa en cuentas de fondeo. Un método concreto, explicado paso a paso, con vídeos y ejemplos de entrada resueltos vela a vela.</p>
+  <p class="lead">Un método concreto para operar la apertura de Nueva York con reglas escritas: cuándo entrar, dónde va el stop, cuánto arriesgar y cuándo no operar. Desde cero hasta operar cuentas de fondeo.</p>
   <div class="pricetag"><span class="p">${price}</span><span class="s">3 meses de acceso · ordenador y móvil</span></div>
   <div class="ig">@fundedlab_es</div>
+</section>
+
+<section class="page">
+  <div class="kick">El problema</div>
+  <h2>No pierdes por la estrategia.<br>Pierdes por romperla.</h2>
+  <p class="lead">La mayoría de traders minoristas pierde dinero. Casi nunca es por falta de estrategia, sino por no controlar el riesgo: operar demasiado grande, sin stop o para recuperar pérdidas.</p>
+  <div class="table-wrap rules"><table><thead><tr><th>Sin un método</th><th>Con este método</th></tr></thead><tbody>
+    <tr><td>Entras cuando «lo ves claro»</td><td>Entras solo en la <b>ruptura del rango de 15:15 a 15:30</b></td></tr>
+    <tr><td>El stop va donde duele… o no va</td><td><b>Stop de 80 puntos</b> puesto en el mismo segundo que la entrada</td></tr>
+    <tr><td>El tamaño, a ojo</td><td><b>Contratos = riesgo ÷ (80 × valor por punto)</b></td></tr>
+    <tr><td>Tras una pérdida, vuelves a entrar</td><td><b>Una operación al día.</b> Tras el stop, cierras la plataforma</td></tr>
+    <tr><td>Añades contratos cuando va en contra</td><td>Solo añades tras +80, con el <b>peor caso siempre positivo</b></td></tr>
+    <tr><td>El drawdown trailing te liquida la cuenta</td><td>Tamaño calculado sobre el <b>drawdown disponible</b> de tu firma</td></tr>
+  </tbody></table></div>
+  <div class="figbox">${fig('equity')}</div>
+  <div class="figcap">La misma estrategia con y sin reglas de riesgo (curvas ilustrativas). En este curso el sistema es la parte fácil; la disciplina es la difícil.</div>
+  ${foot(2)}
 </section>
 
 <section class="page">
@@ -134,7 +157,7 @@ const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><style>
     <tr><td>Take profit</td><td>80 puntos (riesgo/beneficio 1:1)</td></tr>
     <tr><td>Gestión</td><td>Tras +80: cierre parcial, stop a favor y añadidos cubiertos por el beneficio</td></tr>
   </tbody></table></div>
-  ${foot(2)}
+  ${foot(3)}
 </section>
 
 <section class="page">
@@ -150,7 +173,7 @@ const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><style>
     <ol start="18"><li>Largo, corto y ruptura falsa</li><li>Días sin operación y cierre de vela</li><li>Sesión completa con promediado</li></ol></div></div>
   <div class="figbox" style="margin-top:4mm">${fig('valid')}</div>
   <div class="figcap">Del Módulo 7: cuándo un rango es válido y cuándo ese día no se opera.</div>
-  ${foot(3)}
+  ${foot(4)}
 </section>
 
 <section class="page">
@@ -162,7 +185,25 @@ const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><style>
   <div class="figbox">${fig('ej-largo', { wide: true })}</div>
   <div class="figcap">Resolución: ruptura alcista a las 15:31 y objetivo de +80 puntos a las 15:49 (precios ilustrativos).</div>
   <div class="cardx" style="margin-top:2mm"><h3>Y también los días que salen mal</h3><p>Rupturas falsas, rangos demasiado anchos, escapadas antes de la apertura y el mismo día visto con dos métodos de entrada. Saber cuándo no operar vale tanto como saber entrar.</p></div>
-  ${foot(4)}
+  ${foot(5)}
+</section>
+
+<section class="page">
+  <div class="kick">Tu rutina</div>
+  <h2>Un día con el método</h2>
+  <p>No necesitas estar todo el día delante de la pantalla. El trabajo se concentra alrededor de la apertura de Nueva York, y siempre igual: así no improvisas.</p>
+  <div class="tl">
+    <div><span>14:45</span><p><b>Revisas el calendario macro</b> y el horario de Nueva York. Decides si hoy se opera.</p></div>
+    <div><span>15:00</span><p><b>Abres la plataforma</b>, compruebas el contrato activo y calculas el tamaño con la calculadora de la app.</p></div>
+    <div><span>15:15</span><p><b>Observas la acumulación</b> sin operar.</p></div>
+    <div><span>15:30</span><p><b>Marcas el rango, lo validas</b> y colocas las órdenes OCO con su stop y su objetivo.</p></div>
+    <div><span>Después</span><p><b>Gestionas según el plan</b>: parcial en +80, stop a favor y añadidos cubiertos. No añades reglas nuevas.</p></div>
+    <div><span>Al cerrar</span><p><b>Registras la operación</b> en tu diario con una captura.</p></div>
+  </div>
+  <div class="figbox">${fig('ej-piramide', { wide: true })}</div>
+  <div class="figcap">Una sesión completa con promediado a favor, resuelta vela a vela en el Módulo 20 (precios ilustrativos).</div>
+  <p style="font-size:9.5pt;color:var(--muted)">Horas de España. En las semanas del cambio de hora la ventana se adelanta una hora: el reloj de la app te lo calcula.</p>
+  ${foot(6)}
 </section>
 
 <section class="page">
@@ -181,12 +222,12 @@ const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><style>
     <div class="phone"><img src="${img('m-calc.png', 'image/png')}" alt=""></div>
   </div>
   <div class="figcap">Ejemplos interactivos y calculadora de tamaño (capturas reales de la app en el móvil).</div>
-  ${foot(5)}
+  ${foot(7)}
 </section>
 
 <section class="page">
   <div class="kick">Acceso</div>
-  <h2>Empieza hoy</h2>
+  <h2>Empieza hoy. Acceso inmediato.</h2>
   <div class="cta">
     <div>
       <div class="p">${price}</div>
@@ -209,7 +250,7 @@ const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><style>
     <div><h4>¿Sirve para cuentas de fondeo?</h4><p>Sí: hay un módulo dedicado al tamaño según el drawdown y a las reglas de las firmas.</p></div>
   </div>
   <p class="legal"><b>Aviso legal.</b> Material exclusivamente formativo. No constituye asesoramiento financiero ni recomendación de inversión. Los ejemplos usan precios ilustrativos y los resultados pasados o simulados no garantizan resultados futuros. El trading de futuros apalancados conlleva un riesgo elevado y puede suponer pérdidas superiores al capital depositado.<br>© 2026 Funded Lab · @fundedlab_es</p>
-  ${foot(6)}
+  ${foot(8)}
 </section>
 </body></html>`;
 
