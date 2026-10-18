@@ -30,8 +30,11 @@ const cfg = {
 };
 const secureCookie = cfg.baseUrl.startsWith('https://');
 
-const db = openDb(cfg.dataDir);
+const db = await openDb({ dir: cfg.dataDir, url: env.TURSO_DATABASE_URL, authToken: env.TURSO_AUTH_TOKEN });
 const store = makeStore(db, { months: cfg.months, maxDevices: cfg.maxDevices });
+// Vídeos: «burn» graba el correo de cada alumno en la imagen (necesita CPU); «overlay» solo lo muestra encima
+// del reproductor (para servidores gratuitos, que tardarían minutos en grabarlo).
+const videoMode = env.VIDEO_WATERMARK === 'overlay' ? 'overlay' : 'burn';
 const content = loadCourse({ root: ROOT, key: env.CONTENT_KEY, cacheDir: join(cfg.dataDir, 'cache') });
 const stripe = env.STRIPE_SECRET_KEY ? new Stripe(env.STRIPE_SECRET_KEY) : null;
 const mail = makeMailer({ apiKey: env.RESEND_API_KEY, from: env.MAIL_FROM || 'Funded Lab <curso@fundedlab.es>' });
@@ -76,11 +79,11 @@ function setSessionCookie(res, sid) {
 
 const isAdmin = (email) => cfg.adminEmails.includes(normEmail(email));
 
-function startSession(req, res, userId) {
-  const u = store.userById(userId);
-  const sid = store.newSession(userId, { device: req.get('user-agent'), ip: req.ip, max: isAdmin(u?.email) ? 6 : undefined });
+async function startSession(req, res, userId) {
+  const u = await store.userById(userId);
+  const sid = await store.newSession(userId, { device: req.get('user-agent'), ip: req.ip, max: isAdmin(u?.email) ? 6 : undefined });
   setSessionCookie(res, sid);
-  store.log(userId, 'login', req.ip);
+  await store.log(userId, 'login', req.ip);
 }
 
 // Límite sencillo de peticiones por clave (IP o correo) para el formulario de acceso.
@@ -95,14 +98,14 @@ function limited(key, max, windowMs) {
 }
 
 // Exige sesión válida y acceso vigente.
-function auth(req, res, next) {
+async function auth(req, res, next) {
   const sid = cookies(req).fl_sid;
-  const s = store.session(sid);
+  const s = await store.session(sid);
   if (!s) return res.status(401).json({ error: 'login', message: 'Inicia sesión para ver el curso.' });
   const adm = isAdmin(s.email);
   // Los administradores tienen acceso gratis y sin caducidad.
   if (!adm && s.access_until <= Date.now()) return res.status(402).json({ error: 'expired', message: 'Tu acceso al curso ha caducado.', email: s.email, accessUntil: s.access_until });
-  if (Date.now() - s.last_seen > 60e3) store.touch(sid, req.ip);
+  if (Date.now() - s.last_seen > 60e3) await store.touch(sid, req.ip);
   req.user = { id: s.user_id, email: s.email, accessUntil: adm ? null : s.access_until, admin: adm, sid, license: licenseId(s.user_id) };
   res.set('Cache-Control', 'private, no-store');
   next();
@@ -111,7 +114,7 @@ function auth(req, res, next) {
 const absolute = (path) => `${cfg.baseUrl}${path}`;
 
 async function sendLoginLink(user, ttlMs) {
-  const t = store.newLoginToken(user.id, ttlMs);
+  const t = await store.newLoginToken(user.id, ttlMs);
   await mail.loginLink(user.email, absolute(`/acceso?t=${encodeURIComponent(t)}`));
 }
 
@@ -127,7 +130,7 @@ async function grantFromCheckout(session) {
   }
   const email = normEmail(session.customer_details?.email || session.customer_email);
   if (!email) return null;
-  const r = store.grant({
+  const r = await store.grant({
     email,
     stripeSession: session.id,
     paymentIntent: typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id,
@@ -137,7 +140,7 @@ async function grantFromCheckout(session) {
   });
   if (r.created) {
     console.log(`Acceso concedido a ${email} hasta ${new Date(r.user.access_until).toISOString()}`);
-    const t = store.newLoginToken(r.user.id, 72 * 3600e3);
+    const t = await store.newLoginToken(r.user.id, 72 * 3600e3);
     mail.welcome(email, absolute(`/acceso?t=${encodeURIComponent(t)}`), r.user.access_until).catch((e) => console.error('Correo de bienvenida:', e.message));
   }
   return r;
@@ -159,10 +162,10 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
         await grantFromCheckout(o);
         break;
       case 'charge.refunded':
-        if (o.refunded) console.log('Reembolso: acceso retirado a', store.revokeByPaymentIntent(o.payment_intent));
+        if (o.refunded) console.log('Reembolso: acceso retirado a', await store.revokeByPaymentIntent(o.payment_intent));
         break;
       case 'charge.dispute.created':
-        console.log('Disputa: acceso retirado a', store.revokeByPaymentIntent(o.payment_intent));
+        console.log('Disputa: acceso retirado a', await store.revokeByPaymentIntent(o.payment_intent));
         break;
     }
     res.json({ received: true });
@@ -209,8 +212,8 @@ app.get('/gracias', async (req, res) => {
     if (!r) return res.redirect('/entrar?pendiente=1');
     // El enlace de vuelta solo inicia sesión una vez y durante las primeras 2 horas.
     const fresh = Date.now() - r.purchase.created_at < 2 * 3600e3;
-    if (fresh && store.claimAutologin(r.purchase.id)) {
-      startSession(req, res, r.user.id);
+    if (fresh && (await store.claimAutologin(r.purchase.id))) {
+      await startSession(req, res, r.user.id);
       return res.redirect('/app?bienvenida=1');
     }
     res.redirect('/entrar?comprado=1');
@@ -226,7 +229,7 @@ app.post('/api/login', async (req, res) => {
   const email = normEmail(req.body?.email);
   if (!email.includes('@') || email.length > 200) return res.status(400).json({ message: 'Escribe un correo válido.' });
   if (limited(`ip:${req.ip}`, 10, 15 * 60e3) || limited(`em:${email}`, 4, 15 * 60e3)) return res.status(429).json({ message: 'Demasiados intentos. Espera unos minutos.' });
-  const u = store.userByEmail(email);
+  const u = await store.userByEmail(email);
   // Misma respuesta exista o no la cuenta, para no revelar quién ha comprado el curso.
   if (u && (u.access_until > Date.now() || isAdmin(u.email))) {
     try { await sendLoginLink(u); } catch (e) { console.error('Correo de acceso:', e.message); return res.status(500).json({ message: 'No se pudo enviar el correo. Inténtalo más tarde.' }); }
@@ -234,21 +237,21 @@ app.post('/api/login', async (req, res) => {
   res.json({ ok: true, message: 'Si ese correo tiene el curso activo, te hemos enviado un enlace para entrar. Revisa también la carpeta de spam.' });
 });
 
-app.get('/acceso', (req, res) => {
-  const userId = store.useLoginToken(req.query.t || '');
+app.get('/acceso', async (req, res) => {
+  const userId = await store.useLoginToken(req.query.t || '');
   if (!userId) return res.redirect('/entrar?caducado=1');
-  startSession(req, res, userId);
+  await startSession(req, res, userId);
   res.redirect('/app');
 });
 
-app.post('/api/logout', (req, res) => {
+app.post('/api/logout', async (req, res) => {
   const sid = cookies(req).fl_sid;
-  if (sid) store.endSession(sid);
+  if (sid) await store.endSession(sid);
   res.clearCookie('fl_sid', { path: '/' });
   res.json({ ok: true });
 });
 
-app.get('/api/me', auth, (req, res) => {
+app.get('/api/me', auth, async (req, res) => {
   const current = hash(req.user.sid);
   res.json({
     email: req.user.email,
@@ -256,34 +259,34 @@ app.get('/api/me', auth, (req, res) => {
     accessUntil: req.user.accessUntil,
     admin: req.user.admin,
     maxDevices: req.user.admin ? 6 : cfg.maxDevices,
-    devices: store.sessionsOf(req.user.id).map((d) => ({ device: d.device, lastSeen: d.last_seen, current: d.id_hash === current })),
+    devices: (await store.sessionsOf(req.user.id)).map((d) => ({ device: d.device, lastSeen: d.last_seen, current: d.id_hash === current })),
   });
 });
 
-app.post('/api/devices/logout-others', auth, (req, res) => {
+app.post('/api/devices/logout-others', auth, async (req, res) => {
   const current = hash(req.user.sid);
-  for (const d of store.sessionsOf(req.user.id)) if (d.id_hash !== current) store.raw.delSession.run(d.id_hash);
+  for (const d of await store.sessionsOf(req.user.id)) if (d.id_hash !== current) await store.raw.delSession.run(d.id_hash);
   res.json({ ok: true });
 });
 
 // ---------------------------------------------------------------- contenido
 
-app.get('/api/course', auth, (req, res) => {
+app.get('/api/course', auth, async (req, res) => {
   const { course } = content;
   res.json({
     title: course.title,
     subtitle: course.subtitle,
     hasPdf: !!content.pdf,
     parts: course.parts.map((p) => ({ num: p.num, title: p.title, intro: p.intro || '', modules: p.modules.map((m) => ({ id: m.id, num: m.num, title: m.title, video: content.videos.has(m.id) })) })),
-    progress: store.progress(req.user.id),
+    progress: await store.progress(req.user.id),
   });
 });
 
-app.get('/api/module/:id', auth, (req, res) => {
+app.get('/api/module/:id', auth, async (req, res) => {
   const mod = content.modules.get(req.params.id);
   if (!mod) return res.status(404).json({ message: 'Módulo no encontrado' });
   const i = content.order.indexOf(mod.id);
-  store.log(req.user.id, `module:${mod.id}`, req.ip);
+  await store.log(req.user.id, `module:${mod.id}`, req.ip);
   res.json({
     id: mod.id,
     title: mod.title,
@@ -294,11 +297,11 @@ app.get('/api/module/:id', auth, (req, res) => {
   });
 });
 
-app.post('/api/progress', auth, (req, res) => {
+app.post('/api/progress', auth, async (req, res) => {
   const id = String(req.body?.id || '');
   if (!content.modules.has(id)) return res.status(400).json({ message: 'Módulo no válido' });
-  store.setProgress(req.user.id, id, !!req.body?.done);
-  res.json({ progress: store.progress(req.user.id) });
+  await store.setProgress(req.user.id, id, !!req.body?.done);
+  res.json({ progress: await store.progress(req.user.id) });
 });
 
 app.get('/api/pdf', auth, async (req, res) => {
@@ -310,7 +313,7 @@ app.get('/api/pdf', auth, async (req, res) => {
       if (pdfCache.size > 200) pdfCache = new Map();
       pdfCache.set(req.user.id, pdf);
     }
-    store.log(req.user.id, 'pdf', req.ip);
+    await store.log(req.user.id, 'pdf', req.ip);
     res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename="Funded_Lab_Curso_Trading_Futuros.pdf"' });
     res.send(pdf);
   } catch (e) {
@@ -325,8 +328,8 @@ app.get('/api/video/:id', auth, async (req, res) => {
   if (!content.videos.has(id)) return res.status(404).json({ message: 'Vídeo no encontrado' });
   const src = join(content.videoDir, `${id}.mp4`);
   try {
-    const file = ffmpeg ? await watermarkedVideo(src, join(cfg.dataDir, 'cache'), req.user.id, id, `${req.user.email} · ${req.user.license}`) : src;
-    if (!req.get('range') || req.get('range') === 'bytes=0-') store.log(req.user.id, `video:${id}`, req.ip);
+    const file = ffmpeg && videoMode === 'burn' ? await watermarkedVideo(src, join(cfg.dataDir, 'cache'), req.user.id, id, `${req.user.email} · ${req.user.license}`) : src;
+    if (!req.get('range') || req.get('range') === 'bytes=0-') await store.log(req.user.id, `video:${id}`, req.ip);
     res.set({ 'Cache-Control': 'private, no-store', 'Content-Disposition': 'inline' });
     res.sendFile(file, { acceptRanges: true, lastModified: false, etag: false, cacheControl: false });
   } catch (e) {
@@ -343,26 +346,26 @@ const sameSecret = (a, b) => {
 };
 
 // Permite el acceso con la sesión de un correo de ADMIN_EMAILS o con «Authorization: Bearer ADMIN_PASSWORD».
-function admin(req, res, next) {
+async function admin(req, res, next) {
   const t = String(req.get('authorization') || '').replace(/^Bearer /, '');
   if (cfg.adminPassword.length >= 8 && t && sameSecret(t, cfg.adminPassword)) return next();
-  const s = store.session(cookies(req).fl_sid);
+  const s = await store.session(cookies(req).fl_sid);
   if (s && isAdmin(s.email)) { res.set('Cache-Control', 'private, no-store'); return next(); }
   res.status(403).json({ message: 'Solo para el administrador' });
 }
 
 // Entrada del administrador con su correo y la contraseña del panel (no necesita correo electrónico configurado).
-app.post('/api/admin/login', (req, res) => {
+app.post('/api/admin/login', async (req, res) => {
   if (limited(`adm:${req.ip}`, 8, 15 * 60e3)) return res.status(429).json({ message: 'Demasiados intentos. Espera 15 minutos.' });
   const email = normEmail(req.body?.email);
   if (!cfg.adminPassword || cfg.adminPassword.length < 8 || !isAdmin(email) || !sameSecret(req.body?.password || '', cfg.adminPassword)) {
     return res.status(403).json({ message: 'Correo o contraseña incorrectos.' });
   }
-  startSession(req, res, store.getOrCreateUser(email).id);
+  await startSession(req, res, (await store.getOrCreateUser(email)).id);
   res.json({ ok: true });
 });
 
-const accessLink = (userId) => absolute(`/acceso?t=${encodeURIComponent(store.newLoginToken(userId, 7 * 864e5))}`);
+const accessLink = async (userId) => absolute(`/acceso?t=${encodeURIComponent(await store.newLoginToken(userId, 7 * 864e5))}`);
 const userView = (u) => ({
   email: u.email,
   license: licenseId(u.id),
@@ -370,51 +373,51 @@ const userView = (u) => ({
   active: isAdmin(u.email) || u.access_until > Date.now(),
   accessUntil: u.access_until || null,
   createdAt: u.created_at,
-  devices: u.devices ?? store.sessionsOf(u.id).length,
+  devices: u.devices ?? 0,
 });
 
-app.get('/api/admin/users', admin, (req, res) => res.json(store.users().map(userView)));
+app.get('/api/admin/users', admin, async (req, res) => res.json((await store.users()).map(userView)));
 
 // Dar acceso (o ampliarlo): suma `months` meses. Devuelve un enlace de acceso de 7 días para enviarlo por WhatsApp o correo.
 app.post('/api/admin/grant', admin, async (req, res) => {
   const email = normEmail(req.body?.email);
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ message: 'Correo no válido' });
   const months = Math.min(36, Math.max(1, Math.round(Number(req.body?.months || cfg.months))));
-  const r = store.grant({ email, source: 'manual', months });
-  const link = accessLink(r.user.id);
+  const r = await store.grant({ email, source: 'manual', months });
+  const link = await accessLink(r.user.id);
   let mailed = false;
   if (req.body?.notify) {
     try { await mail.welcome(email, link, r.user.access_until); mailed = !!env.RESEND_API_KEY; } catch (e) { console.error('Correo:', e.message); }
   }
-  res.json({ ...userView(r.user), link, mailed });
+  res.json({ ...userView({ ...r.user, devices: (await store.sessionsOf(r.user.id)).length }), link, mailed });
 });
 
 // Bloquear: quita el acceso y cierra todas sus sesiones al momento.
-app.post('/api/admin/revoke', admin, (req, res) => {
+app.post('/api/admin/revoke', admin, async (req, res) => {
   const email = normEmail(req.body?.email);
   if (isAdmin(email)) return res.status(400).json({ message: 'No puedes bloquear a un administrador' });
-  res.json({ revoked: store.revokeUser(email) });
+  res.json({ revoked: await store.revokeUser(email) });
 });
 
 // Nuevo enlace de acceso para un alumno activo (por si pierde el correo o cambia de móvil).
-app.post('/api/admin/link', admin, (req, res) => {
-  const u = store.userByEmail(req.body?.email);
+app.post('/api/admin/link', admin, async (req, res) => {
+  const u = await store.userByEmail(req.body?.email);
   if (!u || !(u.access_until > Date.now() || isAdmin(u.email))) return res.status(400).json({ message: 'Ese alumno no tiene acceso activo' });
-  res.json({ link: accessLink(u.id) });
+  res.json({ link: await accessLink(u.id) });
 });
 
 // Cierra la sesión en todos sus dispositivos (sin quitarle el acceso).
-app.post('/api/admin/logout-devices', admin, (req, res) => {
-  const u = store.userByEmail(req.body?.email);
-  if (u) store.raw.delSessionsOf.run(u.id);
+app.post('/api/admin/logout-devices', admin, async (req, res) => {
+  const u = await store.userByEmail(req.body?.email);
+  if (u) await store.endSessionsOf(u.id);
   res.json({ ok: !!u });
 });
 
 // Busca a quién pertenece una licencia vista en una copia filtrada.
-app.get('/api/admin/license/:id', admin, (req, res) => {
+app.get('/api/admin/license/:id', admin, async (req, res) => {
   const id = String(req.params.id).trim().toUpperCase();
   const m = /^FL-(\d+)-/.exec(id);
-  const u = m && store.userById(Number(m[1]));
+  const u = m && (await store.userById(Number(m[1])));
   res.json(u && licenseId(u.id) === id ? userView(u) : null);
 });
 

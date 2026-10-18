@@ -16,6 +16,7 @@ Object.assign(process.env, {
 });
 delete process.env.STRIPE_PRICE_ID;
 delete process.env.CONTENT_KEY;
+delete process.env.TURSO_DATABASE_URL;
 
 const { app, store, content } = await import('../server.js');
 const Stripe = (await import('stripe')).default;
@@ -36,8 +37,8 @@ async function webhook(type, object) {
 }
 
 async function loginAs(email) {
-  const u = store.userByEmail(email);
-  const t = store.newLoginToken(u.id);
+  const u = await store.userByEmail(email);
+  const t = await store.newLoginToken(u.id);
   const r = await fetch(`${base}/acceso?t=${t}`, { redirect: 'manual' });
   assert.equal(r.status, 302);
   return r.headers.get('set-cookie').split(';')[0];
@@ -53,7 +54,7 @@ test('rechaza webhooks sin firma válida', async () => {
 test('la compra da 3 meses de acceso y no cuenta dos veces', async () => {
   assert.equal((await webhook('checkout.session.completed', session('cs_1', 'Alumno@Correo.com'))).status, 200);
   assert.equal((await webhook('checkout.session.completed', session('cs_1', 'alumno@correo.com'))).status, 200);
-  const u = store.userByEmail('alumno@correo.com');
+  const u = await store.userByEmail('alumno@correo.com');
   const days = (u.access_until - Date.now()) / 864e5;
   assert.ok(days > 88 && days < 93, `días: ${days}`);
 });
@@ -75,8 +76,8 @@ test('el contenido lleva el correo del alumno', async () => {
 });
 
 test('un enlace de acceso solo sirve una vez', async () => {
-  const u = store.userByEmail('alumno@correo.com');
-  const t = store.newLoginToken(u.id);
+  const u = await store.userByEmail('alumno@correo.com');
+  const t = await store.newLoginToken(u.id);
   assert.equal((await fetch(`${base}/acceso?t=${t}`, { redirect: 'manual' })).headers.get('location'), '/app');
   assert.equal((await fetch(`${base}/acceso?t=${t}`, { redirect: 'manual' })).headers.get('location'), '/entrar?caducado=1');
 });
@@ -103,16 +104,16 @@ test('el vídeo se sirve por rangos y solo con sesión', { skip: !content.videos
 test('acceso caducado → 402', async () => {
   await webhook('checkout.session.completed', session('cs_2', 'caducado@correo.com'));
   const cookie = await loginAs('caducado@correo.com');
-  const u = store.userByEmail('caducado@correo.com');
-  store.raw.setAccess.run(Date.now() - 1000, u.id);
+  const u = await store.userByEmail('caducado@correo.com');
+  await store.raw.setAccess.run(Date.now() - 1000, u.id);
   assert.equal((await fetch(`${base}/api/course`, { headers: { cookie } })).status, 402);
 });
 
 test('una segunda compra suma 3 meses al final', async () => {
   await webhook('checkout.session.completed', session('cs_3', 'renueva@correo.com'));
-  const first = store.userByEmail('renueva@correo.com').access_until;
+  const first = (await store.userByEmail('renueva@correo.com')).access_until;
   await webhook('checkout.session.completed', session('cs_4', 'renueva@correo.com'));
-  const second = store.userByEmail('renueva@correo.com').access_until;
+  const second = (await store.userByEmail('renueva@correo.com')).access_until;
   const extra = (second - first) / 864e5;
   assert.ok(extra > 88 && extra < 93, `extra: ${extra}`);
 });
@@ -121,7 +122,7 @@ test('el reembolso retira el acceso y cierra las sesiones', async () => {
   const cookie = await loginAs('alumno@correo.com');
   assert.equal((await webhook('charge.refunded', { object: 'charge', refunded: true, payment_intent: 'pi_cs_1' })).status, 200);
   assert.equal((await fetch(`${base}/api/me`, { headers: { cookie } })).status, 401);
-  assert.ok(store.userByEmail('alumno@correo.com').access_until <= Date.now());
+  assert.ok((await store.userByEmail('alumno@correo.com')).access_until <= Date.now());
 });
 
 test('el login no revela si un correo ha comprado', async () => {

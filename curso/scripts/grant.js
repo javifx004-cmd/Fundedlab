@@ -7,15 +7,16 @@ import { fileURLToPath } from 'node:url';
 import { openDb, makeStore } from '../lib/db.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const store = makeStore(openDb(process.env.DATA_DIR || join(root, 'data')), { months: Number(process.env.ACCESS_MONTHS || 3) });
+const db = await openDb({ dir: process.env.DATA_DIR || join(root, 'data'), url: process.env.TURSO_DATABASE_URL, authToken: process.env.TURSO_AUTH_TOKEN });
+const store = makeStore(db, { months: Number(process.env.ACCESS_MONTHS || 3) });
 const [a, b] = process.argv.slice(2);
 const d = (ms) => (ms ? new Date(ms).toLocaleString('es-ES') : '—');
 if (a === '--list') {
-  for (const u of store.users()) console.log(`${u.email.padEnd(36)} ${u.access_until > Date.now() ? 'ACTIVO ' : 'caducado'} hasta ${d(u.access_until)} · ${u.devices} disp.`);
+  for (const u of await store.users()) console.log(`${u.email.padEnd(36)} ${u.access_until > Date.now() ? 'ACTIVO ' : 'caducado'} hasta ${d(u.access_until)} · ${u.devices} disp.`);
 } else if (a === '--revoke' && b) {
-  console.log(store.revokeUser(b) ? `Acceso retirado a ${b}` : `No existe ${b}`);
+  console.log((await store.revokeUser(b)) ? `Acceso retirado a ${b}` : `No existe ${b}`);
 } else if (a && a.includes('@')) {
-  const r = store.grant({ email: a, source: 'manual', months: Number(b || process.env.ACCESS_MONTHS || 3) });
+  const r = await store.grant({ email: a, source: 'manual', months: Number(b || process.env.ACCESS_MONTHS || 3) });
   console.log(`${r.user.email}: acceso hasta ${d(r.user.access_until)}`);
 } else {
   console.log('Uso: npm run grant -- correo [meses] | --revoke correo | --list');

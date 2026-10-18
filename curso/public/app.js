@@ -12,6 +12,7 @@
   };
 
   let me = null, course = null, progress = new Set();
+  let wmBg = ''; // fondo SVG de la marca de agua (también se usa dentro del reproductor)
   const modules = [];
 
   // ------------------------------------------------------------ API
@@ -40,6 +41,7 @@
     const w = Math.max(320, text.length * 8.2 + 80), h = 170;
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><text x="20" y="${h / 2}" transform="rotate(-24 ${w / 2} ${h / 2})" fill="rgba(200,215,235,0.075)" font-family="sans-serif" font-size="14" font-weight="700">${esc(text)}</text></svg>`;
     const bg = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+    wmBg = bg;
     const css = `position:fixed;inset:0;z-index:9999;pointer-events:none;background-image:${bg};background-repeat:repeat;display:block;opacity:1;visibility:visible`;
     let applied = null; // cssText tal y como lo normaliza el navegador
     const apply = () => {
@@ -220,13 +222,21 @@
   function video(el) {
     const id = el.dataset.video;
     $('.video-play', el).addEventListener('click', () => {
-      el.innerHTML = `<video controls playsinline preload="auto" controlslist="nodownload noremoteplayback" disablepictureinpicture></video><div class="vwm"></div><div class="vstatus">Preparando tu vídeo con marca de agua…</div>`;
+      // Sin pantalla completa nativa (ocultaría las marcas): el botón ⛶ pone en pantalla completa el contenedor con las marcas.
+      el.innerHTML = `<video controls playsinline preload="auto" controlslist="nodownload noremoteplayback nofullscreen" disablepictureinpicture></video><div class="vtile"></div><div class="vwm"></div><div class="vstatus">Preparando tu vídeo…</div>${el.requestFullscreen || el.webkitRequestFullscreen ? '<button class="vfs" type="button" aria-label="Pantalla completa">⛶</button>' : ''}`;
+      $('.vtile', el).style.backgroundImage = wmBg;
+      $('.vfs', el)?.addEventListener('click', () => {
+        if (document.fullscreenElement || document.webkitFullscreenElement) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+        else (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+      });
       const v = $('video', el), wm = $('.vwm', el), st = $('.vstatus', el);
       wm.textContent = `${me.email} · ${me.license}`;
       const move = () => { wm.style.left = `${4 + Math.random() * 56}%`; wm.style.top = `${6 + Math.random() * 78}%`; };
       move();
       const timer = setInterval(() => { if (!document.contains(el)) clearInterval(timer); else move(); }, 6000);
       v.addEventListener('canplay', () => st.remove(), { once: true });
+      // iPhone: su pantalla completa nativa no admite capas encima, así que se cancela.
+      v.addEventListener('webkitbeginfullscreen', () => { v.webkitExitFullscreen?.(); toast('Gira el móvil para verlo más grande'); });
       v.addEventListener('error', () => { st.textContent = 'No se pudo cargar el vídeo. Vuelve a intentarlo.'; });
       v.src = `/api/video/${encodeURIComponent(id)}`;
       v.play().catch(() => {});

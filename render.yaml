@@ -1,21 +1,30 @@
-# Despliegue del curso (carpeta curso/) en Render: https://render.com/deploy?repo=https://github.com/javifx004-cmd/Fundedlab/tree/curso-app
-# Necesita un plan con disco persistente para guardar alumnos, sesiones y vídeos con marca de agua.
+# Despliegue GRATIS del curso (carpeta curso/) en Render:
+#   https://render.com/deploy?repo=https://github.com/javifx004-cmd/Fundedlab/tree/curso-app
+# Plan Free: el servidor se duerme tras 15 min sin visitas (la primera visita tarda ~1 min en despertarlo) y su disco
+# se borra al reiniciar, por eso los alumnos se guardan en una base de datos gratuita de Turso (turso.tech).
 services:
   - type: web
     name: fundedlab-curso
     runtime: docker
     dockerfilePath: ./curso/Dockerfile
     dockerContext: ./curso
-    plan: starter
+    plan: free
     healthCheckPath: /api/config
-    disk:
-      name: datos
-      mountPath: /data
-      sizeGB: 1
     envVars:
       - key: BASE_URL
         sync: false
       - key: CONTENT_KEY
+        sync: false
+      # Tu correo (acceso gratis sin caducidad y panel de alumnos en /admin)
+      - key: ADMIN_EMAILS
+        sync: false
+      # Contraseña del panel de alumnos (mínimo 8 caracteres)
+      - key: ADMIN_PASSWORD
+        sync: false
+      # Base de datos de Turso: libsql://…turso.io y su token
+      - key: TURSO_DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
         sync: false
       - key: STRIPE_SECRET_KEY
         sync: false
@@ -29,12 +38,10 @@ services:
         sync: false
       - key: MAIL_FROM
         sync: false
-      # Tu correo (acceso gratis sin caducidad y panel de alumnos en /admin)
-      - key: ADMIN_EMAILS
-        sync: false
-      # Contraseña del panel de alumnos (mínimo 8 caracteres)
-      - key: ADMIN_PASSWORD
-        sync: false
+      # En el plan gratis la marca de los vídeos va superpuesta (grabarla en cada vídeo tardaría minutos).
+      # Con un plan de pago, pon «burn» para grabar el correo en la imagen.
+      - key: VIDEO_WATERMARK
+        value: overlay
       - key: ACCESS_MONTHS
         value: "3"
       - key: MAX_DEVICES

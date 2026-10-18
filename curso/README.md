@@ -9,7 +9,8 @@ App web instalable (PWA: PC, Mac, Android, iPhone) para vender y dar el curso **
 - **Marca de agua con el correo del alumno** y su número de licencia (`FL-00042-AB12`) en todo:
   - cada página de la app (capa en diagonal que se vuelve a poner si alguien la borra desde el navegador),
   - cada gráfico (el correo va dentro del propio SVG, también en capturas),
-  - cada **vídeo** (grabado en la imagen con ffmpeg para cada alumno, más una marca que cambia de sitio),
+  - cada **vídeo** (grabado en la imagen con ffmpeg para cada alumno con `VIDEO_WATERMARK=burn`, o superpuesto en el plan gratis,
+    más una marca que cambia de sitio),
   - el **PDF** descargable (en diagonal y en el pie de cada página),
   - el texto copiado (se añade la licencia al pegarlo).
 - **Contenido**: los 17 módulos del manual + Parte IV con **7 ejemplos de entrada interactivos** («¿qué harías a las 15:30?»
@@ -24,7 +25,7 @@ App web instalable (PWA: PC, Mac, Android, iPhone) para vender y dar el curso **
 | Parte | Qué es |
 |---|---|
 | `server.js` | Servidor Node (Express): Stripe, acceso, API del curso, PDF y vídeos con marca |
-| `lib/` | Base de datos SQLite (`node:sqlite`), gráficos SVG, render de lecciones, correo (Resend), marcas de agua |
+| `lib/` | Base de datos (SQLite local o Turso),  gráficos SVG, render de lecciones, correo (Resend), marcas de agua |
 | `public/` | Web de venta (`/`), acceso (`/entrar`) y la app del curso (`/app`) |
 | `content/` | **El curso cifrado** (AES-256-GCM): textos, PDF y vídeos. El repositorio es público, así que solo se sube cifrado |
 | `content-src/` | El curso sin cifrar para editarlo. **No se sube** (está en `.gitignore`) |
@@ -50,13 +51,25 @@ del Payment Link `https://TU_DOMINIO/gracias?session_id={CHECKOUT_SESSION_ID}` p
 Crea una cuenta en [resend.com](https://resend.com), verifica tu dominio y copia la API key → `RESEND_API_KEY`;
 el remitente en `MAIL_FROM` (p. ej. `Funded Lab <curso@tudominio.com>`). Sin esto los enlaces de acceso solo salen en el log.
 
-### 3. Servidor
-Necesita Node 22.13+, **ffmpeg** y un **disco persistente** (alumnos, sesiones y copias de vídeo con marca).
+### 3. Servidor (gratis)
 
-- **Render**: *New → Blueprint* y elige este repositorio (usa `render.yaml` de la raíz del repositorio y el `Dockerfile`). Rellena las variables.
-- **Cualquier VPS / Docker**: `docker build -t fundedlab-curso curso && docker run -p 3000:3000 -v fl-data:/data --env-file curso/.env fundedlab-curso`
+**Opción gratuita: Render Free + Turso**
+1. **Turso** (base de datos gratis): entra en [turso.tech](https://turso.tech) con GitHub → *Create Database*
+   (nombre `fundedlab`, la región más cercana, p. ej. Frankfurt). Copia la **URL** (`libsql://…turso.io`) →
+   `TURSO_DATABASE_URL`, y crea un **token** (*Create Token*) → `TURSO_AUTH_TOKEN`.
+2. **Render**: abre https://render.com/deploy?repo=https://github.com/javifx004-cmd/Fundedlab/tree/curso-app
+   (usa `render.yaml` de la raíz, plan Free) y rellena las variables.
 
-Variables: mira `.env.example`. Apunta tu dominio (p. ej. `curso.fundedlab.es`) al servidor y pon `BASE_URL` con https.
+Limitaciones del plan gratis: el servidor se duerme tras 15 minutos sin visitas y la primera visita tarda ~1 minuto en
+despertarlo; la marca de agua de los vídeos va **superpuesta** (correo en mosaico y otro que cambia de sitio, también en
+pantalla completa) en lugar de grabada en la imagen. Con un plan de pago (Render Starter, ~7 $/mes) pon
+`VIDEO_WATERMARK=burn` y no se duerme.
+
+**Otro servidor / Docker**: `docker build -t fundedlab-curso curso && docker run -p 3000:3000 -v fl-data:/data --env-file curso/.env fundedlab-curso`
+(sin Turso, los datos se guardan en `/data`: monta un volumen).
+
+Variables: mira `.env.example`. Para un dominio propio (p. ej. `curso.fundedlab.es`), añádelo en Render → Settings →
+Custom Domains y pon `BASE_URL` con esa dirección.
 
 ### 4. Probar una compra
 Con claves de prueba de Stripe (`sk_test_…`), compra con la tarjeta `4242 4242 4242 4242`. Debes entrar directamente en

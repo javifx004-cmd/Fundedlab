@@ -11,4 +11,4 @@ COPY public ./public
 COPY content ./content
 ENV NODE_ENV=production PORT=3000 DATA_DIR=/data
 EXPOSE 3000
-CMD ["node", "--disable-warning=ExperimentalWarning", "server.js"]
+CMD ["node", "server.js"]
