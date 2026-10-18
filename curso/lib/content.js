@@ -13,7 +13,9 @@ import { join, relative, extname, basename } from 'node:path';
 const MAGIC = Buffer.from('FLC1');
 
 export function parseKey(k) {
-  const key = Buffer.from(String(k || '').trim(), 'base64');
+  // Tolera fallos típicos al copiarla: espacios alrededor, «+» convertidos en espacios y variante base64url.
+  const clean = String(k || '').trim().replace(/^["']|["']$/g, '').replace(/\s/g, '+').replace(/-/g, '+').replace(/_/g, '/');
+  const key = Buffer.from(clean, 'base64');
   if (key.length !== 32) throw new Error('CONTENT_KEY debe ser 32 bytes en base64 (genera una con: npm run seal -- --new-key)');
   return key;
 }
