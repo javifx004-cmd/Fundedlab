@@ -32,8 +32,9 @@ services:
         sync: false
       - key: STRIPE_PRICE_ID
         sync: false
+      # Precio que se muestra en la web (el cobro real lo define el precio de Stripe)
       - key: COURSE_PRICE_LABEL
-        sync: false
+        value: "99,99 €"
       - key: RESEND_API_KEY
         sync: false
       - key: MAIL_FROM
