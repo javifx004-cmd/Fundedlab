@@ -387,6 +387,21 @@ const userView = (u) => ({
   devices: u.devices ?? 0,
 });
 
+// Qué está configurado (sin mostrar ningún valor secreto), para ver de un vistazo qué falta.
+app.get('/api/admin/status', admin, (req, res) => {
+  const key = env.STRIPE_SECRET_KEY || '';
+  res.json({
+    stripeKey: !!key, stripeMode: key.startsWith('sk_live') || key.startsWith('rk_live') ? 'real' : key ? 'prueba' : null,
+    stripeKeyLooksOk: !key || /^(sk|rk)_(test|live)_/.test(key.trim()),
+    stripePrice: !!cfg.priceId, stripePriceLooksOk: !cfg.priceId || cfg.priceId.startsWith('price_'),
+    stripeWebhook: !!env.STRIPE_WEBHOOK_SECRET, stripeWebhookLooksOk: !env.STRIPE_WEBHOOK_SECRET || env.STRIPE_WEBHOOK_SECRET.trim().startsWith('whsec_'),
+    checkout: !!stripe && !!cfg.priceId,
+    priceLabel: cfg.priceLabel || null,
+    mail: !!env.RESEND_API_KEY, turso: !!env.TURSO_DATABASE_URL, baseUrl: cfg.baseUrl,
+    videoWatermark: videoMode,
+  });
+});
+
 app.get('/api/admin/users', admin, async (req, res) => res.json((await store.users()).map(userView)));
 
 // Dar acceso (o ampliarlo): suma `months` meses. Devuelve un enlace de acceso de 7 días para enviarlo por WhatsApp o correo.

@@ -5,7 +5,7 @@
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const fmt = (ms) => (ms ? new Date(ms).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
   const view = $('#view');
-  let users = [], filter = 'Activos', query = '';
+  let users = [], filter = 'Activos', query = '', status = null;
 
   async function api(path, body) {
     const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {});
@@ -38,6 +38,7 @@
 
   async function load() {
     try { users = await api('/api/admin/users'); } catch (e) { if (e.status === 403) return loginForm(); view.innerHTML = `<p class="msg err">${esc(e.message)}</p>`; return; }
+    try { status = await api('/api/admin/status'); } catch { status = null; }
     render();
   }
 
@@ -48,6 +49,7 @@
     view.innerHTML = `
       <h1 style="font-family:var(--serif);margin:10px 0 4px">Alumnos</h1>
       <p class="muted" style="margin:0 0 18px">${active} con acceso · ${users.length - active} sin acceso · ${users.length} en total</p>
+      ${statusCard()}
 
       <form class="card adm-grant" id="grant">
         <h3>Dar acceso</h3>
@@ -69,6 +71,23 @@
     $('#q').addEventListener('input', (e) => { query = e.target.value; list(); });
     view.querySelectorAll('[data-f]').forEach((b) => b.addEventListener('click', () => { filter = b.dataset.f; render(); }));
     list();
+  }
+
+  // Estado de la configuración del servidor (variables de Render), sin mostrar valores secretos.
+  function statusCard() {
+    if (!status) return '';
+    const row = (ok, label, hint) => `<li style="margin:4px 0">${ok ? '✅' : '❌'} ${label}${!ok && hint ? `<br><span class="muted" style="font-size:13px">${hint}</span>` : ''}</li>`;
+    const s = status;
+    return `<div class="card" style="margin-bottom:18px"><h3 style="margin-top:0">Estado de la configuración</h3>
+      <p style="margin:0 0 8px;font-weight:700">${s.checkout ? `✅ La venta está activa (${s.stripeMode === 'real' ? 'cobros reales' : 'modo de prueba'})` : '❌ La venta está desactivada: el botón dice «Próximamente»'}</p>
+      <ul style="list-style:none;padding:0;margin:0">
+        ${row(s.stripeKey && s.stripeKeyLooksOk, 'Clave secreta de Stripe (STRIPE_SECRET_KEY)', s.stripeKey ? 'No parece una clave secreta: debe empezar por sk_test_ o sk_live_.' : 'Falta. Cópiala en Stripe → Desarrolladores → Claves de API (empieza por sk_test_).')}
+        ${row(s.stripePrice && s.stripePriceLooksOk, 'Precio del curso (STRIPE_PRICE_ID)', s.stripePrice ? 'Debe empezar por price_.' : 'Falta.')}
+        ${row(s.stripeWebhook && s.stripeWebhookLooksOk, 'Webhook de Stripe (STRIPE_WEBHOOK_SECRET)', s.stripeWebhook ? 'Debe empezar por whsec_.' : 'Falta: sin él, los pagos no dan acceso automáticamente.')}
+        ${row(!!s.priceLabel, `Precio en la web (COURSE_PRICE_LABEL)${s.priceLabel ? `: ${esc(s.priceLabel)}` : ''}`, 'Opcional: el texto del precio, p. ej. 99,99 €.')}
+        ${row(s.turso, 'Base de datos Turso', 'Sin ella, los alumnos se borran al reiniciarse el servidor gratuito.')}
+        ${row(s.mail, 'Correos (RESEND_API_KEY)', 'Opcional: sin ella no se envían correos; usa los enlaces de WhatsApp del panel.')}
+      </ul></div>`;
   }
 
   function list() {
