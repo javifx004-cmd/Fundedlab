@@ -14,7 +14,8 @@
     "unseal": "node scripts/unseal.js",
     "grant": "node scripts/grant.js",
     "test": "node --test test/*.test.js",
-    "videos": "node scripts/make-videos.js"
+    "videos": "node scripts/make-videos.js",
+    "brochure": "node scripts/make-brochure.js"
   },
   "dependencies": {
     "@libsql/client": "^0.15.15",
@@ -23,6 +24,7 @@
     "stripe": "^19.1.0"
   },
   "devDependencies": {
-    "playwright": "^1.56.1"
+    "playwright": "^1.56.1",
+    "qrcode": "^1.5.4"
   }
 }
