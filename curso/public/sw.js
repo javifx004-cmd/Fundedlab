@@ -1,6 +1,6 @@
 // Solo guarda en caché la «carcasa» de la app (HTML, CSS, JS e iconos) para que abra rápido como app instalada.
 // El contenido del curso (/api/...) nunca se guarda: siempre se pide al servidor, que comprueba el acceso.
-const CACHE = 'fundedlab-curso-v3';
+const CACHE = 'fundedlab-curso-v4';
 const SHELL = ['/app', '/entrar', '/style.css', '/app.js', '/entrar.js', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {

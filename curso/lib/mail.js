@@ -2,7 +2,7 @@
  * Envío de correos con Resend (https://resend.com) mediante su API HTTP, sin dependencias.
  * Sin RESEND_API_KEY los correos se escriben en la consola (útil en desarrollo).
  */
-export function makeMailer({ apiKey, from, brand = 'Funded Lab' }) {
+export function makeMailer({ apiKey, from, brand = 'Funded Lab', contact = 'grupolab@proton.me' }) {
   async function send(to, subject, html, text) {
     if (!apiKey) {
       console.log(`\n[correo sin enviar: falta RESEND_API_KEY]\nPara: ${to}\nAsunto: ${subject}\n${text}\n`);
@@ -19,7 +19,7 @@ export function makeMailer({ apiKey, from, brand = 'Funded Lab' }) {
   const button = (url, label) => `<p style="margin:28px 0"><a href="${url}" style="background:#7fd8ef;color:#062330;padding:14px 22px;border-radius:12px;text-decoration:none;font-weight:700">${label}</a></p>`;
   const wrap = (body) => `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:auto;color:#0b1120;line-height:1.5">
     <p style="font-size:20px;font-weight:800">Funded<span style="color:#0e9bb8">_lab</span></p>${body}
-    <p style="color:#6b7280;font-size:12px;margin-top:32px">Si no has pedido este correo, ignóralo. El enlace es personal: no lo compartas.</p></div>`;
+    <p style="color:#6b7280;font-size:12px;margin-top:32px">Si no has pedido este correo, ignóralo. El enlace es personal: no lo compartas.<br>¿Dudas? Escríbenos a <a href="mailto:${contact}">${contact}</a>.</p></div>`;
   const date = (ms) => new Date(ms).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
 
   return {

@@ -2,6 +2,7 @@
 
 Copia el texto de cada publicación al subirla. Los reels no llevan música: al subirlos, añade un audio en tendencia desde
 Instagram (toca «Audio» al editar el reel). Pon el enlace de la web en tu bio: https://fundedlab-curso.onrender.com
+y el correo de contacto: grupolab@proton.me
 
 Hashtags (cópialos al final de cada texto o en el primer comentario):
 #trading #tradingdefuturos #futuros #nasdaq #NQ #daytrading #cuentasdefondeo #propfirm #fondeo #traderespañol #tradingespaña #aprendetrading #gestiondelriesgo #fundedlab
@@ -36,6 +37,7 @@ Un único método, explicado de principio a fin: cómo marcar el rango antes de 
 📱 App para el móvil y el ordenador
 
 99,99 € · 3 meses de acceso. Link en la bio 👆
+📩 Dudas: grupolab@proton.me
 
 Contenido formativo. No es asesoramiento financiero. El trading apalancado conlleva un riesgo elevado.
 
@@ -53,6 +55,7 @@ Así opero la apertura de Nueva York en 20 segundos ⏱️
 Una operación al día. Las reglas, siempre las mismas.
 
 ¿Quieres el método completo? Link en la bio 👆
+📩 Dudas: grupolab@proton.me
 
 *Precios ilustrativos. Contenido formativo, no es asesoramiento financiero.*
 
@@ -69,6 +72,7 @@ Luego cae 150 puntos más… y no vuelvo a entrar. Una operación al día.
 Las cuentas de fondeo no se queman por un stop. Se queman por lo que haces DESPUÉS del stop.
 
 Método completo en el link de la bio 👆
+📩 Dudas: grupolab@proton.me
 
 *Precios ilustrativos. Contenido formativo.*
 
@@ -83,6 +87,7 @@ Spoiler: no. El rango mide 95 puntos, más que el propio stop de 80. Si entras, 
 Saber cuándo NO operar vale tanto como saber entrar.
 
 En el curso tienes 7 ejemplos como este para entrenar el ojo. Link en la bio 👆
+📩 Dudas: grupolab@proton.me
 
 ---
 
@@ -99,6 +104,7 @@ Estrategia de ruptura 15:15 – 15:30: del primer gráfico de velas a la operati
 ✅ App para móvil y ordenador
 
 99,99 € · 3 meses de acceso. Link en la bio 👆
+📩 Dudas: grupolab@proton.me
 
 *Contenido formativo. No es asesoramiento financiero.*
 
@@ -119,6 +125,7 @@ Desliza para ver las 5 reglas del método y cómo se ve un día ganador… y uno
 Guárdalo para repasarlo antes de tu próxima sesión 📌
 
 Curso completo en el link de la bio.
+📩 Dudas: grupolab@proton.me
 
 ---
 
@@ -131,6 +138,7 @@ Mira cada gráfico a las 15:30, comenta SÍ o NO y desliza para ver la respuesta
 ¿Cuántas has acertado? Dímelo en comentarios 👇
 
 En el curso tienes 7 ejemplos así, resueltos vela a vela. Link en la bio.
+📩 Dudas: grupolab@proton.me
 
 *Precios ilustrativos. Contenido formativo.*
 
@@ -149,3 +157,4 @@ Y en fondeo, se calcula sobre el drawdown, no sobre el saldo.
 Guárdalo 📌 y compártelo con quien opere demasiado grande 😅
 
 La calculadora está dentro de la app del curso. Link en la bio.
+📩 Dudas: grupolab@proton.me

@@ -261,7 +261,7 @@ const HASHTAGS = [
   '#trading #futures #nasdaq100 #MNQ #intradia #fondeo #gestiondelriesgo #aprendetrading #tradingespaña #fundedlab',
   '#daytrading #tradingdefuturos #nasdaq #cuentadefondeo #propfirmtrader #disciplina #tradingtips #traders #fundedlab #fundedlab_es',
 ];
-const CTA = '\n\n👉 Curso completo en el link de la bio.';
+const CTA = '\n\n👉 Curso completo en el link de la bio.\n📩 Dudas: grupolab@proton.me';
 const NOTE = '\n\nContenido formativo. No es asesoramiento financiero.';
 
 const iso = (d) => d.toISOString().slice(0, 10);
@@ -272,7 +272,7 @@ for (let i = 0; i < 91; i++) {
   const date = iso(d);
   const dow = d.getUTCDay();
   let item;
-  if (SPECIAL[date]) item = { ...SPECIAL[date], caption: SPECIAL[date].caption + NOTE };
+  if (SPECIAL[date]) item = { ...SPECIAL[date], caption: `${SPECIAL[date].caption}\n\n📩 Dudas: grupolab@proton.me${NOTE}` };
   else if (dow === 1) { const c = EDU[e++ % EDU.length]; item = { type: 'carrusel', name: c.name, slides: c.slides, caption: c.caption + CTA }; }
   else if (dow === 2) { const x = replayReel(REPLAYS[rp++ % REPLAYS.length]); item = { ...x, caption: x.caption + CTA + '\n\nPrecios ilustrativos.' + NOTE }; }
   else if (dow === 3) { const [t, sub] = RULES[r++ % RULES.length]; item = { type: 'post', name: 'regla', slides: [quote('Regla del método', t, sub, 'brand')], caption: `📌 ${t}\n\n${sub}${CTA}` }; }

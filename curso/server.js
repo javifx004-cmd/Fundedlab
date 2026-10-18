@@ -48,7 +48,7 @@ try {
   fatal(env.CONTENT_KEY ? 'CONTENT_KEY no es correcta (cópiala de nuevo, sin espacios).' : 'falta la variable CONTENT_KEY.', e);
 }
 const stripe = env.STRIPE_SECRET_KEY ? new Stripe(env.STRIPE_SECRET_KEY) : null;
-const mail = makeMailer({ apiKey: env.RESEND_API_KEY, from: env.MAIL_FROM || 'Funded Lab <curso@fundedlab.es>' });
+const mail = makeMailer({ apiKey: env.RESEND_API_KEY, from: env.MAIL_FROM || 'Funded Lab <curso@fundedlab.es>', contact: env.CONTACT_EMAIL || 'grupolab@proton.me' });
 const ffmpeg = hasFfmpeg();
 let pdfCache = new Map(); // userId → PDF con marca de agua (en memoria, se reconstruye al reiniciar)
 

@@ -11,6 +11,7 @@
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* sin almacenamiento */ } },
   };
 
+  const CONTACT = 'grupolab@proton.me';
   let me = null, course = null, progress = new Set();
   let wmBg = ''; // fondo SVG de la marca de agua (también se usa dentro del reproductor)
   const modules = [];
@@ -132,6 +133,10 @@
           ${me.devices.length > 1 ? '<button class="btn small" id="logoutOthers">Cerrar los demás</button>' : ''}
           <button class="btn small ghost" id="logout">Cerrar sesión</button>
         </p>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <h3 style="margin-top:0">¿Necesitas ayuda?</h3>
+        <p class="muted" style="margin:0">Dudas sobre el curso, el acceso o tus dispositivos: escríbenos a <a href="mailto:${CONTACT}">${CONTACT}</a>.</p>
       </div>
     </div>`;
     $('#installBtn')?.addEventListener('click', async () => { if (!installPrompt) return; installPrompt.prompt(); await installPrompt.userChoice; installPrompt = null; $('#installBtn').classList.add('hidden'); });
@@ -318,6 +323,7 @@
       <h1>Tu acceso ha caducado</h1>
       <p class="muted">El acceso de ${esc(d.email || '')} terminó el ${d.accessUntil ? fmtDate(d.accessUntil) : '—'}. Puedes renovarlo otros 3 meses con el mismo correo y conservarás tu progreso.</p>
       <a class="btn primary big" href="/">Renovar acceso</a>
+      <p class="muted" style="margin:0;font-size:14px">¿Dudas? Escríbenos a <a href="mailto:${CONTACT}">${CONTACT}</a></p>
       <button class="btn ghost" id="out">Cerrar sesión</button></div></main>`;
     $('#out').addEventListener('click', async () => { await fetch('/api/logout', { method: 'POST' }); location.replace('/entrar?salir=1'); });
   }
