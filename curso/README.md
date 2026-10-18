@@ -53,7 +53,7 @@ el remitente en `MAIL_FROM` (p. ej. `Funded Lab <curso@tudominio.com>`). Sin est
 ### 3. Servidor
 Necesita Node 22.13+, **ffmpeg** y un **disco persistente** (alumnos, sesiones y copias de vídeo con marca).
 
-- **Render**: *New → Blueprint* y elige este repositorio (usa `render.yaml` y el `Dockerfile`). Rellena las variables.
+- **Render**: *New → Blueprint* y elige este repositorio (usa `render.yaml` de la raíz del repositorio y el `Dockerfile`). Rellena las variables.
 - **Cualquier VPS / Docker**: `docker build -t fundedlab-curso curso && docker run -p 3000:3000 -v fl-data:/data --env-file curso/.env fundedlab-curso`
 
 Variables: mira `.env.example`. Apunta tu dominio (p. ej. `curso.fundedlab.es`) al servidor y pon `BASE_URL` con https.

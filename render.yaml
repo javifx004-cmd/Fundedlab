@@ -1,11 +1,11 @@
-# Despliegue en Render (https://render.com): New → Blueprint → elige este repositorio.
+# Despliegue del curso (carpeta curso/) en Render: https://render.com/deploy?repo=https://github.com/javifx004-cmd/Fundedlab/tree/curso-app
 # Necesita un plan con disco persistente para guardar alumnos, sesiones y vídeos con marca de agua.
 services:
   - type: web
     name: fundedlab-curso
     runtime: docker
-    rootDir: curso
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./curso/Dockerfile
+    dockerContext: ./curso
     plan: starter
     healthCheckPath: /api/config
     disk:
