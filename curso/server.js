@@ -30,12 +30,23 @@ const cfg = {
 };
 const secureCookie = cfg.baseUrl.startsWith('https://');
 
-const db = await openDb({ dir: cfg.dataDir, url: env.TURSO_DATABASE_URL, authToken: env.TURSO_AUTH_TOKEN });
+// Si falta algo al arrancar, se explica en el registro (Render → Logs) qué variable revisar.
+function fatal(msg, e) {
+  console.error(`\n*** NO SE PUEDE ARRANCAR: ${msg}\n*** Detalle: ${e?.message || e}\n`);
+  process.exit(1);
+}
+const db = await openDb({ dir: cfg.dataDir, url: env.TURSO_DATABASE_URL?.trim() || undefined, authToken: env.TURSO_AUTH_TOKEN?.trim() || undefined })
+  .catch((e) => fatal('no se pudo abrir la base de datos. Revisa TURSO_DATABASE_URL (empieza por libsql://) y TURSO_AUTH_TOKEN, o déjalas vacías las dos.', e));
 const store = makeStore(db, { months: cfg.months, maxDevices: cfg.maxDevices });
 // Vídeos: «burn» graba el correo de cada alumno en la imagen (necesita CPU); «overlay» solo lo muestra encima
 // del reproductor (para servidores gratuitos, que tardarían minutos en grabarlo).
 const videoMode = env.VIDEO_WATERMARK === 'overlay' ? 'overlay' : 'burn';
-const content = loadCourse({ root: ROOT, key: env.CONTENT_KEY, cacheDir: join(cfg.dataDir, 'cache') });
+let content;
+try {
+  content = loadCourse({ root: ROOT, key: env.CONTENT_KEY?.trim(), cacheDir: join(cfg.dataDir, 'cache') });
+} catch (e) {
+  fatal(env.CONTENT_KEY ? 'CONTENT_KEY no es correcta (cópiala de nuevo, sin espacios).' : 'falta la variable CONTENT_KEY.', e);
+}
 const stripe = env.STRIPE_SECRET_KEY ? new Stripe(env.STRIPE_SECRET_KEY) : null;
 const mail = makeMailer({ apiKey: env.RESEND_API_KEY, from: env.MAIL_FROM || 'Funded Lab <curso@fundedlab.es>' });
 const ffmpeg = hasFfmpeg();
