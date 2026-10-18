@@ -192,11 +192,11 @@ export function makeStore(db, { months = 3, maxDevices = 2 } = {}) {
 
     // Crea una sesión de dispositivo. Si ya hay `maxDevices`, se cierra la más antigua:
     // la cuenta solo puede estar abierta a la vez en un número limitado de dispositivos.
-    newSession(userId, { device, ip }) {
+    newSession(userId, { device, ip, max = maxDevices }) {
       const sid = token();
       const now = Date.now();
       const list = s.sessionsOf.all(userId);
-      for (const old of list.slice(Math.max(0, maxDevices - 1))) s.delSession.run(old.id_hash);
+      for (const old of list.slice(Math.max(0, max - 1))) s.delSession.run(old.id_hash);
       s.insSession.run(hash(sid), userId, String(device || '').slice(0, 200), ip, now, now);
       return sid;
     },

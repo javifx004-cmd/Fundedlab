@@ -11,7 +11,8 @@ Object.assign(process.env, {
   STRIPE_SECRET_KEY: 'sk_test_dummy',
   STRIPE_WEBHOOK_SECRET: 'whsec_test_secret',
   BASE_URL: 'http://localhost',
-  ADMIN_TOKEN: 'admin-token-de-prueba-123',
+  ADMIN_PASSWORD: 'admin-token-de-prueba-123',
+  ADMIN_EMAILS: 'Jefe@Correo.com',
 });
 delete process.env.STRIPE_PRICE_ID;
 delete process.env.CONTENT_KEY;
@@ -129,11 +130,45 @@ test('el login no revela si un correo ha comprado', async () => {
   assert.equal(a.message, b.message);
 });
 
-test('admin: alta manual y búsqueda de licencia', async () => {
+test('admin: API con contraseña, alta manual y búsqueda de licencia', async () => {
   const h = { Authorization: 'Bearer admin-token-de-prueba-123', 'Content-Type': 'application/json' };
-  assert.equal((await fetch(`${base}/api/admin/users`)).status, 404);
+  assert.equal((await fetch(`${base}/api/admin/users`)).status, 403);
   const g = await (await fetch(`${base}/api/admin/grant`, { method: 'POST', headers: h, body: JSON.stringify({ email: 'regalo@correo.com' }) })).json();
   assert.ok(g.accessUntil > Date.now());
+  assert.match(g.link, /\/acceso\?t=/);
   const who = await (await fetch(`${base}/api/admin/license/${g.license}`, { headers: h })).json();
   assert.equal(who.email, 'regalo@correo.com');
+});
+
+test('el administrador entra gratis, sin caducidad, y gestiona alumnos desde su sesión', async () => {
+  const post = (path, body, cookie) => fetch(`${base}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(cookie ? { cookie } : {}) }, body: JSON.stringify(body) });
+  assert.equal((await post('/api/admin/login', { email: 'jefe@correo.com', password: 'mal' })).status, 403);
+  assert.equal((await post('/api/admin/login', { email: 'otro@correo.com', password: 'admin-token-de-prueba-123' })).status, 403);
+  const r = await post('/api/admin/login', { email: 'jefe@correo.com', password: 'admin-token-de-prueba-123' });
+  assert.equal(r.status, 200);
+  const cookie = r.headers.get('set-cookie').split(';')[0];
+  const me = await (await fetch(`${base}/api/me`, { headers: { cookie } })).json();
+  assert.equal(me.admin, true);
+  assert.equal(me.accessUntil, null);
+  assert.equal((await fetch(`${base}/api/module/18-ejemplos-base`, { headers: { cookie } })).status, 200);
+
+  // Dar acceso a un alumno con el enlace para WhatsApp, y que el enlace funcione
+  const g = await (await post('/api/admin/grant', { email: 'nuevo@correo.com', months: 3 }, cookie)).json();
+  const enter = await fetch(g.link.replace('http://localhost', base), { redirect: 'manual' });
+  assert.equal(enter.headers.get('location'), '/app');
+  const alumno = enter.headers.get('set-cookie').split(';')[0];
+  assert.equal((await fetch(`${base}/api/course`, { headers: { cookie: alumno } })).status, 200);
+
+  // Un alumno no puede usar el panel
+  assert.equal((await fetch(`${base}/api/admin/users`, { headers: { cookie: alumno } })).status, 403);
+
+  // Bloquear: pierde el acceso al instante
+  assert.equal((await post('/api/admin/revoke', { email: 'nuevo@correo.com' }, cookie)).status, 200);
+  assert.equal((await fetch(`${base}/api/course`, { headers: { cookie: alumno } })).status, 401);
+  const list = await (await fetch(`${base}/api/admin/users`, { headers: { cookie } })).json();
+  assert.equal(list.find((u) => u.email === 'nuevo@correo.com').active, false);
+  assert.equal(list.find((u) => u.email === 'jefe@correo.com').admin, true);
+
+  // No se puede bloquear al administrador
+  assert.equal((await post('/api/admin/revoke', { email: 'jefe@correo.com' }, cookie)).status, 400);
 });

@@ -98,7 +98,7 @@
     renderNav(null);
     $('#topTitle').textContent = 'Inicio';
     const next = modules.find((m) => !progress.has(m.id)) || modules[0];
-    const days = Math.max(0, Math.ceil((me.accessUntil - Date.now()) / 864e5));
+    const days = me.admin ? null : Math.max(0, Math.ceil((me.accessUntil - Date.now()) / 864e5));
     const welcome = new URLSearchParams(location.search).has('bienvenida');
     const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -109,7 +109,9 @@
       <p><a class="btn primary big" href="#/m/${next.id}">${progress.size ? 'Continuar' : 'Empezar'}: ${esc(next.num ? `Módulo ${next.num}` : next.title)}</a></p>
       <div class="grid2">
         <div class="card"><div class="muted">Progreso</div><div class="stat">${progress.size} / ${modules.length}</div><div class="bar" style="margin-top:8px"><i style="width:${Math.round((progress.size / modules.length) * 100)}%"></i></div></div>
-        <div class="card"><div class="muted">Acceso hasta</div><div class="stat">${fmtDate(me.accessUntil)}</div><div class="muted">Quedan ${days} días</div></div>
+        ${me.admin
+          ? '<div class="card"><div class="muted">Acceso</div><div class="stat">Ilimitado</div><div class="muted">Eres administrador</div><p style="margin:10px 0 0"><a class="btn primary small" href="/admin">Panel de alumnos</a></p></div>'
+          : `<div class="card"><div class="muted">Acceso hasta</div><div class="stat">${fmtDate(me.accessUntil)}</div><div class="muted">Quedan ${days} días</div></div>`}
       </div>
       <div class="grid2">
         ${course.hasPdf ? `<div class="card"><h3 style="margin-top:0">Manual en PDF</h3><p class="muted">El curso completo para leer sin conexión. Lleva tu correo y tu licencia en cada página.</p><a class="btn" href="/api/pdf" download>Descargar PDF</a></div>` : ''}
@@ -319,6 +321,7 @@
     progress = new Set(course.progress);
     course.parts.forEach((p) => p.modules.forEach((m) => modules.push(m)));
     watermark();
+    if (me.admin) $('.side-foot').insertAdjacentHTML('beforeend', '<a class="btn small primary" href="/admin">Panel de alumnos</a>');
     window.addEventListener('hashchange', route);
     route();
     // Comprueba cada 5 minutos que la sesión sigue activa (otro dispositivo puede haberla cerrado o el acceso caducado).

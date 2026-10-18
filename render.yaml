@@ -29,8 +29,12 @@ services:
         sync: false
       - key: MAIL_FROM
         sync: false
-      - key: ADMIN_TOKEN
-        generateValue: true
+      # Tu correo (acceso gratis sin caducidad y panel de alumnos en /admin)
+      - key: ADMIN_EMAILS
+        sync: false
+      # Contraseña del panel de alumnos (mínimo 8 caracteres)
+      - key: ADMIN_PASSWORD
+        sync: false
       - key: ACCESS_MONTHS
         value: "3"
       - key: MAX_DEVICES

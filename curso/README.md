@@ -62,17 +62,31 @@ Variables: mira `.env.example`. Apunta tu dominio (p. ej. `curso.fundedlab.es`) 
 Con claves de prueba de Stripe (`sk_test_…`), compra con la tarjeta `4242 4242 4242 4242`. Debes entrar directamente en
 la app y recibir el correo de bienvenida.
 
-## Gestión de alumnos
+## Gestión de alumnos (panel /admin)
+
+Pon tu correo en `ADMIN_EMAILS` y una contraseña en `ADMIN_PASSWORD`. Con eso:
+
+- **Tú entras gratis y sin caducidad** (hasta 6 dispositivos). Entra en `https://TU_DOMINIO/admin` con tu correo y la
+  contraseña; desde ahí, «Ir al curso». En la app verás «Acceso: ilimitado» y el botón **Panel de alumnos**.
+- En el **panel de alumnos** (funciona en el móvil):
+  - **Dar acceso** a un correo (1, 3, 6 o 12 meses; si ya lo tiene, se suma). Te da un **enlace de acceso** para
+    copiarlo o **enviarlo por WhatsApp** (no hace falta tener el correo configurado), y opcionalmente se lo envía por correo.
+  - **+3 meses**, **Enlace de acceso** nuevo (si cambia de móvil), **Cerrar sesiones** y **Bloquear** (pierde el acceso
+    y se cierran sus sesiones al momento; para desbloquearlo, «Dar 3 meses»).
+  - Buscar por correo o por **número de licencia** (`FL-…`) para saber de quién es una copia filtrada.
+
+También desde la terminal del servidor:
 
 ```bash
-npm run grant -- alumno@correo.com        # dar 3 meses a mano (regalos, pagos por Bizum…)
+npm run grant -- alumno@correo.com        # dar 3 meses
 npm run grant -- alumno@correo.com 6      # 6 meses
 npm run grant -- --revoke alumno@correo.com
 npm run grant -- --list
 ```
 
-O por API con `Authorization: Bearer $ADMIN_TOKEN`: `GET /api/admin/users`, `POST /api/admin/grant {email, months}`,
-`POST /api/admin/revoke {email}` y `GET /api/admin/license/FL-00042-AB12` (quién es el dueño de una licencia).
+Y por API con `Authorization: Bearer $ADMIN_PASSWORD`: `GET /api/admin/users`, `POST /api/admin/grant {email, months, notify}`,
+`POST /api/admin/revoke {email}`, `POST /api/admin/link {email}`, `POST /api/admin/logout-devices {email}` y
+`GET /api/admin/license/FL-00042-AB12`.
 
 ## Editar el curso
 

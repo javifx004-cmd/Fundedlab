@@ -3,6 +3,7 @@
  * Servidor de la app: venta con Stripe, acceso personal de 3 meses, contenido protegido y marca de agua por alumno.
  */
 import express from 'express';
+import { timingSafeEqual } from 'node:crypto';
 import Stripe from 'stripe';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,7 +23,10 @@ const cfg = {
   maxDevices: Number(env.MAX_DEVICES || 2),
   priceId: env.STRIPE_PRICE_ID || '',
   priceLabel: env.COURSE_PRICE_LABEL || '',
-  adminToken: env.ADMIN_TOKEN || '',
+  // Contraseña del panel de administración (también sirve como token de la API: Authorization: Bearer …)
+  adminPassword: env.ADMIN_PASSWORD || env.ADMIN_TOKEN || '',
+  // Correos con acceso gratis y sin caducidad, y con permiso para gestionar alumnos (separados por comas)
+  adminEmails: String(env.ADMIN_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean),
 };
 const secureCookie = cfg.baseUrl.startsWith('https://');
 
@@ -70,8 +74,11 @@ function setSessionCookie(res, sid) {
   res.cookie('fl_sid', sid, { httpOnly: true, sameSite: 'lax', secure: secureCookie, maxAge: 400 * 864e5, path: '/' });
 }
 
+const isAdmin = (email) => cfg.adminEmails.includes(normEmail(email));
+
 function startSession(req, res, userId) {
-  const sid = store.newSession(userId, { device: req.get('user-agent'), ip: req.ip });
+  const u = store.userById(userId);
+  const sid = store.newSession(userId, { device: req.get('user-agent'), ip: req.ip, max: isAdmin(u?.email) ? 6 : undefined });
   setSessionCookie(res, sid);
   store.log(userId, 'login', req.ip);
 }
@@ -92,9 +99,11 @@ function auth(req, res, next) {
   const sid = cookies(req).fl_sid;
   const s = store.session(sid);
   if (!s) return res.status(401).json({ error: 'login', message: 'Inicia sesión para ver el curso.' });
-  if (s.access_until <= Date.now()) return res.status(402).json({ error: 'expired', message: 'Tu acceso al curso ha caducado.', email: s.email, accessUntil: s.access_until });
+  const adm = isAdmin(s.email);
+  // Los administradores tienen acceso gratis y sin caducidad.
+  if (!adm && s.access_until <= Date.now()) return res.status(402).json({ error: 'expired', message: 'Tu acceso al curso ha caducado.', email: s.email, accessUntil: s.access_until });
   if (Date.now() - s.last_seen > 60e3) store.touch(sid, req.ip);
-  req.user = { id: s.user_id, email: s.email, accessUntil: s.access_until, sid, license: licenseId(s.user_id) };
+  req.user = { id: s.user_id, email: s.email, accessUntil: adm ? null : s.access_until, admin: adm, sid, license: licenseId(s.user_id) };
   res.set('Cache-Control', 'private, no-store');
   next();
 }
@@ -219,7 +228,7 @@ app.post('/api/login', async (req, res) => {
   if (limited(`ip:${req.ip}`, 10, 15 * 60e3) || limited(`em:${email}`, 4, 15 * 60e3)) return res.status(429).json({ message: 'Demasiados intentos. Espera unos minutos.' });
   const u = store.userByEmail(email);
   // Misma respuesta exista o no la cuenta, para no revelar quién ha comprado el curso.
-  if (u && u.access_until > Date.now()) {
+  if (u && (u.access_until > Date.now() || isAdmin(u.email))) {
     try { await sendLoginLink(u); } catch (e) { console.error('Correo de acceso:', e.message); return res.status(500).json({ message: 'No se pudo enviar el correo. Inténtalo más tarde.' }); }
   }
   res.json({ ok: true, message: 'Si ese correo tiene el curso activo, te hemos enviado un enlace para entrar. Revisa también la carpeta de spam.' });
@@ -245,7 +254,8 @@ app.get('/api/me', auth, (req, res) => {
     email: req.user.email,
     license: req.user.license,
     accessUntil: req.user.accessUntil,
-    maxDevices: cfg.maxDevices,
+    admin: req.user.admin,
+    maxDevices: req.user.admin ? 6 : cfg.maxDevices,
     devices: store.sessionsOf(req.user.id).map((d) => ({ device: d.device, lastSeen: d.last_seen, current: d.id_hash === current })),
   });
 });
@@ -325,26 +335,87 @@ app.get('/api/video/:id', auth, async (req, res) => {
   }
 });
 
-// ---------------------------------------------------------------- administración (ADMIN_TOKEN)
+// ---------------------------------------------------------------- administración
 
+const sameSecret = (a, b) => {
+  const x = Buffer.from(String(a)), y = Buffer.from(String(b));
+  return x.length === y.length && timingSafeEqual(x, y);
+};
+
+// Permite el acceso con la sesión de un correo de ADMIN_EMAILS o con «Authorization: Bearer ADMIN_PASSWORD».
 function admin(req, res, next) {
   const t = String(req.get('authorization') || '').replace(/^Bearer /, '');
-  if (!cfg.adminToken || t.length < 16 || t !== cfg.adminToken) return res.status(404).end();
-  next();
+  if (cfg.adminPassword.length >= 8 && t && sameSecret(t, cfg.adminPassword)) return next();
+  const s = store.session(cookies(req).fl_sid);
+  if (s && isAdmin(s.email)) { res.set('Cache-Control', 'private, no-store'); return next(); }
+  res.status(403).json({ message: 'Solo para el administrador' });
 }
-app.get('/api/admin/users', admin, (req, res) => res.json(store.users().map((u) => ({ ...u, license: licenseId(u.id), active: u.access_until > Date.now() }))));
-app.post('/api/admin/grant', admin, (req, res) => {
+
+// Entrada del administrador con su correo y la contraseña del panel (no necesita correo electrónico configurado).
+app.post('/api/admin/login', (req, res) => {
+  if (limited(`adm:${req.ip}`, 8, 15 * 60e3)) return res.status(429).json({ message: 'Demasiados intentos. Espera 15 minutos.' });
   const email = normEmail(req.body?.email);
-  if (!email.includes('@')) return res.status(400).json({ message: 'Correo no válido' });
-  const r = store.grant({ email, source: 'manual', months: Number(req.body?.months || cfg.months) });
-  res.json({ email, accessUntil: r.user.access_until, license: licenseId(r.user.id) });
+  if (!cfg.adminPassword || cfg.adminPassword.length < 8 || !isAdmin(email) || !sameSecret(req.body?.password || '', cfg.adminPassword)) {
+    return res.status(403).json({ message: 'Correo o contraseña incorrectos.' });
+  }
+  startSession(req, res, store.getOrCreateUser(email).id);
+  res.json({ ok: true });
 });
-app.post('/api/admin/revoke', admin, (req, res) => res.json({ revoked: store.revokeUser(req.body?.email) }));
+
+const accessLink = (userId) => absolute(`/acceso?t=${encodeURIComponent(store.newLoginToken(userId, 7 * 864e5))}`);
+const userView = (u) => ({
+  email: u.email,
+  license: licenseId(u.id),
+  admin: isAdmin(u.email),
+  active: isAdmin(u.email) || u.access_until > Date.now(),
+  accessUntil: u.access_until || null,
+  createdAt: u.created_at,
+  devices: u.devices ?? store.sessionsOf(u.id).length,
+});
+
+app.get('/api/admin/users', admin, (req, res) => res.json(store.users().map(userView)));
+
+// Dar acceso (o ampliarlo): suma `months` meses. Devuelve un enlace de acceso de 7 días para enviarlo por WhatsApp o correo.
+app.post('/api/admin/grant', admin, async (req, res) => {
+  const email = normEmail(req.body?.email);
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ message: 'Correo no válido' });
+  const months = Math.min(36, Math.max(1, Math.round(Number(req.body?.months || cfg.months))));
+  const r = store.grant({ email, source: 'manual', months });
+  const link = accessLink(r.user.id);
+  let mailed = false;
+  if (req.body?.notify) {
+    try { await mail.welcome(email, link, r.user.access_until); mailed = !!env.RESEND_API_KEY; } catch (e) { console.error('Correo:', e.message); }
+  }
+  res.json({ ...userView(r.user), link, mailed });
+});
+
+// Bloquear: quita el acceso y cierra todas sus sesiones al momento.
+app.post('/api/admin/revoke', admin, (req, res) => {
+  const email = normEmail(req.body?.email);
+  if (isAdmin(email)) return res.status(400).json({ message: 'No puedes bloquear a un administrador' });
+  res.json({ revoked: store.revokeUser(email) });
+});
+
+// Nuevo enlace de acceso para un alumno activo (por si pierde el correo o cambia de móvil).
+app.post('/api/admin/link', admin, (req, res) => {
+  const u = store.userByEmail(req.body?.email);
+  if (!u || !(u.access_until > Date.now() || isAdmin(u.email))) return res.status(400).json({ message: 'Ese alumno no tiene acceso activo' });
+  res.json({ link: accessLink(u.id) });
+});
+
+// Cierra la sesión en todos sus dispositivos (sin quitarle el acceso).
+app.post('/api/admin/logout-devices', admin, (req, res) => {
+  const u = store.userByEmail(req.body?.email);
+  if (u) store.raw.delSessionsOf.run(u.id);
+  res.json({ ok: !!u });
+});
+
 // Busca a quién pertenece una licencia vista en una copia filtrada.
 app.get('/api/admin/license/:id', admin, (req, res) => {
-  const m = /^FL-(\d+)-/.exec(req.params.id);
+  const id = String(req.params.id).trim().toUpperCase();
+  const m = /^FL-(\d+)-/.exec(id);
   const u = m && store.userById(Number(m[1]));
-  res.json(u && licenseId(u.id) === req.params.id ? u : null);
+  res.json(u && licenseId(u.id) === id ? userView(u) : null);
 });
 
 // ---------------------------------------------------------------- páginas
@@ -354,6 +425,7 @@ const page = (file) => (req, res) => res.set('Cache-Control', 'no-cache').sendFi
 app.get('/', page('index.html'));
 app.get('/entrar', page('entrar.html'));
 app.get('/app', page('app.html'));
+app.get('/admin', page('admin.html'));
 app.get('/sw.js', (req, res) => res.set({ 'Cache-Control': 'no-cache', 'Service-Worker-Allowed': '/' }).sendFile(join(pub, 'sw.js')));
 app.use(express.static(pub, { index: false, maxAge: '1h' }));
 app.use((req, res) => res.status(404).sendFile(join(pub, 'index.html')));

@@ -299,3 +299,25 @@ details.box summary { cursor: pointer; font-weight: 700; color: var(--brand); }
   .table-wrap table { width: max-content; min-width: 100%; }
   .table-wrap td { max-width: 240px; }
 }
+
+/* ============================================================ panel de alumnos */
+.adm { max-width: 860px; padding-bottom: 60px; }
+.adm h3 { margin: 0 0 12px; }
+.adm-grant { margin-bottom: 18px; }
+.adm-row { display: grid; grid-template-columns: 1fr 140px auto; gap: 10px; }
+.adm-check { display: flex; gap: 8px; align-items: center; margin-top: 10px; color: var(--text-2); font-size: 14px; }
+.adm-check input { width: 18px; height: 18px; accent-color: var(--brand); }
+.adm-tools { display: grid; gap: 10px; margin: 6px 0 14px; }
+.adm-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.adm-user { padding: 16px 18px; margin-bottom: 10px; }
+.adm-head { display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap; word-break: break-all; }
+.adm-meta { font-size: 13.5px; margin-top: 4px; }
+.adm-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.adm-link { margin-top: 12px; display: grid; gap: 8px; }
+.adm-link .input { font-size: 13px; }
+.badge { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 99px; white-space: nowrap; }
+.b-ok { background: var(--green-soft); color: var(--green); }
+.b-off { background: var(--red-soft); color: var(--red); }
+.b-adm { background: var(--brand-soft); color: var(--brand); }
+.btn.danger { border-color: rgba(248, 113, 113, .5); color: var(--red); background: transparent; }
+@media (max-width: 600px) { .adm-row { grid-template-columns: 1fr; } }
