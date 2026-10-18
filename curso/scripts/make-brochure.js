@@ -23,7 +23,8 @@ const host = url.replace(/^https?:\/\//, '');
 
 const check = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5L20 7"/></svg>';
 const cross = '<svg viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.4"><path d="M6 6l12 12M18 6L6 18"/></svg>';
-const foot = (n) => `<div class="foot"><span>Funded<b>_lab</b> · Curso de trading de futuros</span><span>${n}</span></div>`;
+const CONTACT = process.env.CONTACT_EMAIL || 'grupolab@proton.me';
+const foot = (n) => `<div class="foot"><span>Funded<b>_lab</b> · Curso de trading de futuros · ${CONTACT}</span><span>${n}</span></div>`;
 
 const css = `
 ${readFileSync(join(root, 'public', 'style.css'), 'utf8')}
@@ -112,7 +113,7 @@ const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><style>
   <div class="rule"></div>
   <p class="lead">Un método concreto para operar la apertura de Nueva York con reglas escritas: cuándo entrar, dónde va el stop, cuánto arriesgar y cuándo no operar. Desde cero hasta operar cuentas de fondeo.</p>
   <div class="pricetag"><span class="p">${price}</span><span class="s">3 meses de acceso · ordenador y móvil</span></div>
-  <div class="ig">@fundedlab_es</div>
+  <div class="ig">@fundedlab_es · ${CONTACT}</div>
 </section>
 
 <section class="page">
@@ -241,6 +242,7 @@ const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><style>
     </div>
     <div class="qr">${qr}</div>
   </div>
+  <div class="cardx" style="margin-top:5mm;display:flex;justify-content:space-between;align-items:center;gap:4mm"><div><h3 style="margin:0">¿Tienes dudas?</h3><p style="margin:1mm 0 0">Escríbenos y te respondemos personalmente.</p></div><div style="font-size:14pt;font-weight:800;color:var(--brand)">${CONTACT}</div></div>
   <div class="faq">
     <div><h4>¿Cuánto dura el acceso?</h4><p>3 meses desde la compra. Si renuevas antes de que termine, se suman al final.</p></div>
     <div><h4>¿Necesito experiencia?</h4><p>No. La primera parte empieza desde cero: velas, futuros y órdenes.</p></div>
