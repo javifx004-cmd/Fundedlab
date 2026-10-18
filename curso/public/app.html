@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0f1c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Funded Lab">
+  <meta name="robots" content="noindex">
+  <title>Curso · Funded Lab</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="app" id="app">
+    <aside class="side" id="side">
+      <a class="brand" href="#/"><img src="/icons/icon.svg" alt="">Funded<b>_lab</b></a>
+      <div class="progress"><div class="bar"><i id="bar" style="width:0"></i></div><small id="progressText"></small></div>
+      <nav class="nav" id="nav"></nav>
+      <div class="side-foot">
+        <a class="btn small" href="#/">Inicio y mi cuenta</a>
+      </div>
+    </aside>
+    <div class="scrim" id="scrim"></div>
+    <div class="main">
+      <header class="topbar">
+        <button class="icon-btn" id="menu" aria-label="Abrir índice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+        <div class="t" id="topTitle">Curso</div>
+      </header>
+      <main class="content" id="view"><p class="muted">Cargando el curso…</p></main>
+    </div>
+  </div>
+  <div id="wm" aria-hidden="true"></div>
+</body>
+</html>

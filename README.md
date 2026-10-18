@@ -41,3 +41,11 @@ Los datos se guardan en el navegador de cada dispositivo (localStorage, sin cifr
 ## Desarrollo
 
 Sin dependencias ni compilación: `python3 -m http.server` y abre `http://localhost:8000`.
+
+---
+
+# Curso Funded Lab (carpeta `curso/`)
+
+App del curso **Estrategia de ruptura 15:15 – 15:30**: venta con Stripe, acceso personal de 3 meses, vídeos, ejemplos de
+entrada y marca de agua con el correo de cada alumno. Necesita servidor (no funciona en GitHub Pages); el contenido se
+publica cifrado. Instrucciones en [`curso/README.md`](curso/README.md).

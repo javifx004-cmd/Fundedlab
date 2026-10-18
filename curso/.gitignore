@@ -1,0 +1,6 @@
+node_modules/
+data/
+# El contenido sin cifrar no se publica nunca: el repositorio es público.
+content-src/
+.env
+*.tmp.mp4

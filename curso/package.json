@@ -1,0 +1,27 @@
+{
+  "name": "fundedlab-curso",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Funded Lab · Curso de trading de futuros: app con acceso de pago (Stripe), 3 meses y marca de agua por alumno",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch server.js",
+    "seal": "node scripts/seal.js",
+    "unseal": "node scripts/unseal.js",
+    "grant": "node --disable-warning=ExperimentalWarning scripts/grant.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js",
+    "videos": "node scripts/make-videos.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "pdf-lib": "^1.17.1",
+    "stripe": "^19.1.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.1"
+  }
+}
