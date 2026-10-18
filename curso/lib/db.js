@@ -56,6 +56,21 @@ const SCHEMA = [
     done_at INTEGER NOT NULL,
     PRIMARY KEY (user_id, module_id)
   )`,
+  `CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS pay_requests (
+    id INTEGER PRIMARY KEY,
+    email TEXT NOT NULL,
+    phone TEXT,
+    method TEXT,
+    note TEXT,
+    ip TEXT,
+    status TEXT NOT NULL DEFAULT 'pendiente',
+    created_at INTEGER NOT NULL,
+    resolved_at INTEGER
+  )`,
   `CREATE TABLE IF NOT EXISTS access_log (
     id INTEGER PRIMARY KEY,
     user_id INTEGER NOT NULL,
@@ -122,6 +137,12 @@ export function makeStore(client, { months = 3, maxDevices = 2 } = {}) {
     setDone: q('INSERT OR REPLACE INTO progress (user_id, module_id, done_at) VALUES (?, ?, ?)'),
     unsetDone: q('DELETE FROM progress WHERE user_id = ? AND module_id = ?'),
     log: q('INSERT INTO access_log (user_id, what, ip, at) VALUES (?, ?, ?, ?)'),
+    settings: q('SELECT key, value FROM settings'),
+    setSetting: q('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'),
+    insRequest: q('INSERT INTO pay_requests (email, phone, method, note, ip, created_at) VALUES (?, ?, ?, ?, ?, ?)'),
+    requests: q("SELECT * FROM pay_requests WHERE status = 'pendiente' ORDER BY created_at DESC LIMIT 200"),
+    request: q('SELECT * FROM pay_requests WHERE id = ?'),
+    setRequest: q('UPDATE pay_requests SET status = ?, resolved_at = ? WHERE id = ?'),
     allUsers: q('SELECT u.*, (SELECT COUNT(*) FROM sessions s WHERE s.user_id = u.id) AS devices FROM users u ORDER BY created_at DESC'),
   };
 
@@ -223,5 +244,15 @@ export function makeStore(client, { months = 3, maxDevices = 2 } = {}) {
     setProgress: (userId, moduleId, done) => (done ? s.setDone.run(userId, moduleId, Date.now()) : s.unsetDone.run(userId, moduleId)),
     log: (userId, what, ip) => s.log.run(userId, what, ip ?? null, Date.now()),
     users: () => s.allUsers.all(),
+
+    // Ajustes editables desde el panel (formas de pago manual).
+    async settings() { return Object.fromEntries((await s.settings.all()).map((r) => [r.key, r.value])); },
+    setSetting: (k, v) => s.setSetting.run(k, String(v ?? '')),
+
+    // Avisos de «ya he pagado» (PayPal / Bizum) que el administrador confirma a mano.
+    addRequest: ({ email, phone, method, note, ip }) => s.insRequest.run(normEmail(email), phone || null, method || null, note || null, ip ?? null, Date.now()),
+    pendingRequests: () => s.requests.all(),
+    request: (id) => s.request.get(id),
+    resolveRequest: (id, status) => s.setRequest.run(status, Date.now(), id),
   };
 }

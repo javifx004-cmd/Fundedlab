@@ -29,7 +29,25 @@
           <div class="price" id="price"></div>
           <input class="input" type="email" id="email" placeholder="Tu correo (será tu acceso)" autocomplete="email">
           <button class="btn primary big" id="buyBtn">Comprar el curso</button>
-          <small class="muted">Pago seguro con Stripe. Acceso inmediato durante <span id="months">3</span> meses en ordenador y móvil.</small>
+          <small class="muted" id="buyNote">Pago seguro. Acceso durante <span id="months">3</span> meses en ordenador y móvil.</small>
+        </div>
+        <div class="card pay hidden" id="pay">
+          <h3 style="margin-top:0">Cómo pagar</h3>
+          <div class="pay-step"><span class="n">1</span><div><b>Paga <span id="payAmount"></span></b> con una de estas opciones:
+            <div class="pay-opts">
+              <a class="btn primary hidden" id="payPaypal" target="_blank" rel="noopener">Pagar con PayPal</a>
+              <div class="pay-bizum hidden" id="payBizum">Bizum al <b id="bizumNum"></b><br><small class="muted">Concepto: «Curso» y tu correo</small></div>
+            </div>
+            <p class="muted hidden" id="payNotes" style="font-size:14px;margin:8px 0 0"></p></div></div>
+          <div class="pay-step"><span class="n">2</span><div><b>Avísanos aquí</b> con el correo con el que quieres entrar al curso:
+            <form id="payForm" class="pay-form">
+              <input class="input" type="email" id="payEmail" placeholder="Tu correo" required autocomplete="email">
+              <input class="input" type="tel" id="payPhone" placeholder="Tu WhatsApp (opcional, para enviarte el acceso)" autocomplete="tel">
+              <select class="input" id="payMethod"><option value="paypal">He pagado con PayPal</option><option value="bizum">He pagado con Bizum</option></select>
+              <button class="btn primary">Ya he pagado</button>
+            </form>
+            <div class="msg hidden" id="payMsg"></div></div></div>
+          <div class="pay-step"><span class="n">3</span><div><b>Recibes tu acceso</b> por correo o WhatsApp en cuanto confirmemos el pago, normalmente en pocas horas.<br><small class="muted">¿Dudas? <a id="payContact"></a></small></div></div>
         </div>
       </div>
       <div class="card hero-card">
@@ -57,7 +75,7 @@
     <section class="section faq">
       <h2>Preguntas frecuentes</h2>
       <details><summary>¿Cuánto dura el acceso?</summary><p>3 meses desde la compra. Si vuelves a comprar antes de que termine, los 3 meses nuevos se suman al final.</p></details>
-      <details><summary>¿Cómo entro después de pagar?</summary><p>Al terminar el pago entras directamente. Además te llega un correo con tu enlace de acceso. En otro dispositivo, pide un enlace con el mismo correo: no hay contraseñas.</p></details>
+      <details><summary>¿Cómo entro después de pagar?</summary><p>Cuando confirmamos tu pago te enviamos tu enlace de acceso por correo o WhatsApp (normalmente en pocas horas). Ábrelo y ya estás dentro, sin contraseñas. Para entrar en otro dispositivo, pide un enlace nuevo con el mismo correo.</p></details>
       <details><summary>¿En cuántos dispositivos puedo usarlo?</summary><p>En dos a la vez (por ejemplo, el ordenador y el móvil). Si entras en un tercero, se cierra la sesión del más antiguo.</p></details>
       <details><summary>¿Puedo compartirlo?</summary><p>No. El acceso es personal: cada página, gráfico, vídeo y el PDF llevan tu correo y tu número de licencia como marca de agua.</p></details>
       <details><summary>¿Tengo alguna duda antes de comprar?</summary><p>Escríbenos a <a href="mailto:grupolab@proton.me">grupolab@proton.me</a> y te respondemos personalmente.</p></details>

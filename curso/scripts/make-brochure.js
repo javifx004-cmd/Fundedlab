@@ -228,7 +228,7 @@ const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><style>
 
 <section class="page">
   <div class="kick">Acceso</div>
-  <h2>Empieza hoy. Acceso inmediato.</h2>
+  <h2>Empieza hoy.</h2>
   <div class="cta">
     <div>
       <div class="p">${price}</div>
@@ -236,8 +236,8 @@ const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><style>
       <div class="url">${host}</div>
       <ol class="steps">
         <li>Escanea el código o entra en la web y pulsa «Comprar el curso».</li>
-        <li>Paga de forma segura con Stripe (tarjeta, Apple Pay o Google Pay).</li>
-        <li>Entras al instante y recibes tu acceso por correo. Instálala en el móvil y en el ordenador.</li>
+        <li>Paga con PayPal o Bizum y avísanos en la web con tu correo.</li>
+        <li>Recibes tu acceso por correo o WhatsApp en pocas horas. Instálala en el móvil y en el ordenador.</li>
       </ol>
     </div>
     <div class="qr">${qr}</div>

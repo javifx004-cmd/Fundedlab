@@ -188,7 +188,37 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
 
 app.use(express.json({ limit: '50kb' }));
 
-app.get('/api/config', (req, res) => res.json({ priceLabel: cfg.priceLabel, months: cfg.months, checkout: !!stripe && !!cfg.priceId, maxDevices: cfg.maxDevices }));
+// Pago manual (PayPal.me / Bizum): los datos los pone el administrador en el panel.
+async function manualPay() {
+  const st = await store.settings();
+  const paypal = (st.paypal || '').trim().replace(/^https?:\/\/(www\.)?paypal\.(me|com\/paypalme)\//i, '').replace(/\/.*$/, '');
+  const bizum = (st.bizum || '').replace(/[^\d+]/g, '');
+  return { paypal, bizum, whatsapp: (st.whatsapp || '').replace(/[^\d]/g, ''), notes: st.payNotes || '', active: !!(paypal || bizum) };
+}
+// Importe para el enlace de PayPal a partir del texto del precio («99,99 €» → 99.99).
+const priceAmount = () => { const m = /(\d+(?:[.,]\d{1,2})?)/.exec(cfg.priceLabel.replace(/\.(?=\d{3})/g, '')); return m ? m[1].replace(',', '.') : ''; };
+
+app.get('/api/config', async (req, res) => {
+  const m = await manualPay();
+  res.json({
+    priceLabel: cfg.priceLabel, months: cfg.months, maxDevices: cfg.maxDevices,
+    checkout: !!stripe && !!cfg.priceId,
+    manual: m.active ? { paypal: m.paypal ? `https://paypal.me/${encodeURIComponent(m.paypal)}${priceAmount() ? `/${priceAmount()}EUR` : ''}` : '', paypalUser: m.paypal, bizum: m.bizum, whatsapp: m.whatsapp, notes: m.notes, contact: env.CONTACT_EMAIL || 'grupolab@proton.me' } : null,
+  });
+});
+
+// El comprador avisa de que ya ha pagado por PayPal o Bizum.
+app.post('/api/pay-request', async (req, res) => {
+  const email = normEmail(req.body?.email);
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ message: 'Escribe un correo válido.' });
+  if (limited(`pr:${req.ip}`, 6, 60 * 60e3)) return res.status(429).json({ message: 'Demasiados avisos. Escríbenos por correo.' });
+  if (!(await manualPay()).active) return res.status(503).json({ message: 'El pago manual no está activado.' });
+  const phone = String(req.body?.phone || '').replace(/[^\d+ ]/g, '').slice(0, 20);
+  const method = ['paypal', 'bizum'].includes(req.body?.method) ? req.body.method : 'otro';
+  await store.addRequest({ email, phone, method, note: String(req.body?.note || '').slice(0, 300), ip: req.ip });
+  console.log(`Aviso de pago (${method}) de ${email}`);
+  res.json({ ok: true, message: 'Recibido. En cuanto confirmemos tu pago te enviaremos el enlace de acceso a tu correo o WhatsApp (normalmente en pocas horas).' });
+});
 
 app.post('/api/checkout', async (req, res) => {
   if (!stripe || !cfg.priceId) return res.status(503).json({ message: 'La venta todavía no está activada.' });
@@ -388,7 +418,7 @@ const userView = (u) => ({
 });
 
 // Qué está configurado (sin mostrar ningún valor secreto), para ver de un vistazo qué falta.
-app.get('/api/admin/status', admin, (req, res) => {
+app.get('/api/admin/status', admin, async (req, res) => {
   const key = env.STRIPE_SECRET_KEY || '';
   res.json({
     stripeKey: !!key, stripeMode: key.startsWith('sk_live') || key.startsWith('rk_live') ? 'real' : key ? 'prueba' : null,
@@ -396,10 +426,27 @@ app.get('/api/admin/status', admin, (req, res) => {
     stripePrice: !!cfg.priceId, stripePriceLooksOk: !cfg.priceId || cfg.priceId.startsWith('price_'),
     stripeWebhook: !!env.STRIPE_WEBHOOK_SECRET, stripeWebhookLooksOk: !env.STRIPE_WEBHOOK_SECRET || env.STRIPE_WEBHOOK_SECRET.trim().startsWith('whsec_'),
     checkout: !!stripe && !!cfg.priceId,
+    manual: (await manualPay()).active,
     priceLabel: cfg.priceLabel || null,
     mail: !!env.RESEND_API_KEY, turso: !!env.TURSO_DATABASE_URL, baseUrl: cfg.baseUrl,
     videoWatermark: videoMode,
   });
+});
+
+app.get('/api/admin/settings', admin, async (req, res) => res.json(await store.settings()));
+app.post('/api/admin/settings', admin, async (req, res) => {
+  for (const k of ['paypal', 'bizum', 'whatsapp', 'payNotes']) if (k in (req.body || {})) await store.setSetting(k, String(req.body[k]).slice(0, 300));
+  res.json(await store.settings());
+});
+app.get('/api/admin/requests', admin, async (req, res) => res.json(await store.pendingRequests()));
+// Confirmar un pago manual: da acceso y devuelve el enlace para enviárselo. O descartarlo.
+app.post('/api/admin/requests/:id', admin, async (req, res) => {
+  const r = await store.request(Number(req.params.id));
+  if (!r || r.status !== 'pendiente') return res.status(404).json({ message: 'Aviso no encontrado' });
+  if (req.body?.action === 'dismiss') { await store.resolveRequest(r.id, 'descartado'); return res.json({ ok: true }); }
+  const g = await store.grant({ email: r.email, source: `manual:${r.method || 'pago'}`, months: cfg.months });
+  await store.resolveRequest(r.id, 'aceptado');
+  res.json({ ...userView({ ...g.user, devices: 0 }), link: await accessLink(g.user.id), phone: r.phone });
 });
 
 app.get('/api/admin/users', admin, async (req, res) => res.json((await store.users()).map(userView)));
