@@ -16,7 +16,8 @@
     "test": "node --test test/*.test.js",
     "videos": "node scripts/make-videos.js",
     "brochure": "node scripts/make-brochure.js",
-    "social": "node scripts/make-social.js"
+    "social": "node scripts/make-social.js",
+    "plan90": "node scripts/make-plan90.js"
   },
   "dependencies": {
     "@libsql/client": "^0.15.15",

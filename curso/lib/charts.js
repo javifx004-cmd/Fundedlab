@@ -333,6 +333,7 @@ function doubleFig(mark) {
 const RANGE_FROM = 10, RANGE_TO = 24;
 
 function example(def) {
+  def = { kind: 'base', ...def };
   const candles = shapeRange(buildCandles(def), RANGE_FROM, def.shapeTo ?? RANGE_TO, def.hi, def.lo);
   for (const [i, ov] of Object.entries(def.fix || {})) Object.assign(candles[i], ov);
   const sim = simulate(candles, { rangeFrom: RANGE_FROM, rangeTo: RANGE_TO });
@@ -353,18 +354,22 @@ export const EXAMPLES = {
     path: [[0, 20000], [6, 20020], [10, 20012], [13, 20026], [17, 19999], [21, 20022], [25, 20018], [27, 20036], [30, 20052], [33, 20044], [37, 20010], [41, 19990], [45, 19970], [49, 19945], [53, 19960], [58, 19930], [64, 19900], [70, 19880]],
   }),
   'ej-ancho': example({
+    kind: 'ancho',
     seed: 41, hi: 20060, lo: 19965, noise: 4, wick: 6,
     path: [[0, 19990], [6, 19975], [10, 19970], [12, 20010], [14, 19995], [17, 20050], [19, 20030], [21, 19985], [24, 20040], [26, 20010], [30, 20048], [36, 19998], [42, 20052], [48, 20015], [55, 20040], [64, 20000]],
   }),
   'ej-antes': example({
+    kind: 'antes',
     seed: 53, hi: 20030, lo: 20000, noise: 2.5, wick: 3, shapeTo: 19,
     path: [[0, 20015], [6, 20000], [10, 20010], [14, 20025], [17, 20008], [20, 20018], [21, 20026], [24, 20060], [26, 20052], [30, 20078], [34, 20060], [38, 20085], [42, 20070], [48, 20090], [55, 20072], [64, 20095]],
   }),
   'ej-cierre': example({
+    kind: 'cierre',
     seed: 67, hi: 20020, lo: 19985, noise: 2.2, wick: 3, fix: { 25: { h: 20027 } },
     path: [[0, 20030], [6, 20010], [10, 20000], [13, 20015], [16, 19990], [19, 20010], [22, 19995], [25, 20008], [26, 20012], [28, 19998], [30, 19978], [34, 19962], [37, 19970], [41, 19945], [45, 19930], [49, 19905], [53, 19892], [58, 19880], [64, 19890]],
   }),
   'ej-piramide': example({
+    kind: 'piramide',
     seed: 79, hi: 20035, lo: 20000, noise: 2.5, wick: 3,
     path: [[0, 20010], [6, 20030], [10, 20018], [13, 20032], [16, 20004], [19, 20026], [22, 20008], [25, 20024], [27, 20042], [31, 20072], [34, 20064], [38, 20100], [41, 20122], [44, 20108], [47, 20112], [51, 20150], [54, 20142], [58, 20176], [61, 20166], [65, 20196], [68, 20186], [72, 20168], [76, 20172]],
   }),
@@ -382,15 +387,15 @@ function exampleChart(id, mark, question, show = null, limit = null, wide = fals
   const cut = question ? RANGE_TO + 1 : null;
   const levels = [], marks = [];
   const lastRangeCandle = RANGE_TO;
-  if (id === 'ej-ancho') {
+  if (ex.kind === 'ancho' || (!sim.valid && ex.kind !== 'antes')) {
     range.label = question || neutral ? `Rango ${P(sim.size)} pts` : `Rango ${P(sim.size)} pts: no se opera`;
-  } else if (id === 'ej-antes') {
+  } else if (ex.kind === 'antes') {
     // Compresión de 15:15 a 15:24 y escapada antes de la apertura: el rango queda invalidado.
     range.to = ex.shapeTo;
     range.label = 'Compresión 15:15–15:24';
     const i = ex.candles.findIndex((k, j) => j > ex.shapeTo && k.c > ex.hi + 10);
     if (!question && !neutral) marks.push({ i, price: ex.candles[i].c, label: `${ex.candles[i].t}: sale antes de la apertura`, cls: 'c-dn-f', pos: 'below' });
-  } else if (id === 'ej-cierre') {
+  } else if (ex.kind === 'cierre') {
     // Mismo día con los dos métodos: la mecha activa el buy stop, pero ninguna vela cierra por encima del rango.
     const c = ex.close;
     levels.push({ price: sim.hi, label: `Máximo ${P(sim.hi)}`, cls: 'c-ink-t', from: RANGE_FROM, dash: false });
@@ -412,7 +417,7 @@ function exampleChart(id, mark, question, show = null, limit = null, wide = fals
       levels.push({ price: pos.tp, label: `TP ${P(pos.tp)}`, cls: 'c-up-t', from: pos.i });
       levels.push({ price: pos.sl, label: `SL ${P(pos.sl)}`, cls: 'c-dn-t', from: pos.i });
       marks.push({ i: pos.i, price: pos.entry, label: `${long ? 'Compra' : 'Venta'} ${ex.candles[pos.i].t}`, pos: long ? 'above' : 'below' });
-      if (id === 'ej-piramide') {
+      if (ex.kind === 'piramide') {
         // Paso 2: +80 → cierre parcial y stop a +40. Paso 3: añadido en el retroceso. Salida por trailing.
         const p = EXAMPLES[id].plan;
         marks.push({ i: p.partial.i, price: p.partial.price, n: '2', cls: 'c-up-f' });
@@ -459,6 +464,13 @@ function exampleChart(id, mark, question, show = null, limit = null, wide = fals
   const s = candles.findIndex((k, n) => n > i && (dir > 0 ? k.l <= sl : k.h >= sl));
   ex.close = { i, dir, entry, tp, sl, exit: j > 0 && (s < 0 || j < s) ? { i: j } : null, stopped: s > 0 && (j < 0 || s < j) };
 })();
+
+// Registra una sesión nueva (p. ej. las generadas para redes sociales) con las mismas reglas que los ejemplos del curso.
+export function registerExample(id, def) {
+  EXAMPLES[id] = example(def);
+  return EXAMPLES[id];
+}
+export { RANGE_FROM, RANGE_TO };
 
 export const FIGURES = {
   equity, anatomy, timeframes, patterns, orders, range: rangeFig, valid: validFig, pyramid: pyramidFig, double: doubleFig,
