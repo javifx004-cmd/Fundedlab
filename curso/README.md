@@ -36,7 +36,18 @@ puede leer el curso del repositorio.
 
 ## Puesta en marcha
 
-### 1. Stripe
+### 1. Cobro
+
+Hay dos formas; puedes usar una u otra:
+
+**A) PayPal y Bizum, con alta manual (sin configuración técnica).** En el panel **/admin → Formas de pago** pon tu
+usuario de PayPal.me y/o tu número de Bizum. El botón «Comprar» de la web muestra entonces el botón de PayPal (con el
+importe ya puesto), tu Bizum y un formulario «Ya he pagado». Cada aviso aparece en el panel en **Pagos pendientes**:
+compruebas el cobro, pulsas **Dar acceso** y le envías el enlace por WhatsApp o correo con un toque.
+
+**B) Stripe, automático.** Se usa en cuanto están `STRIPE_SECRET_KEY` y `STRIPE_PRICE_ID` (tiene prioridad sobre A).
+
+#### Stripe
 1. **Product catalog → Add product**: «Curso Funded Lab», precio único (p. ej. 197 €). Copia el `price_…` → `STRIPE_PRICE_ID`.
 2. **Developers → API keys**: copia la clave secreta → `STRIPE_SECRET_KEY`.
 3. **Developers → Webhooks → Add endpoint**: `https://TU_DOMINIO/api/stripe/webhook` con los eventos
