@@ -17,7 +17,8 @@
     "videos": "node scripts/make-videos.js",
     "brochure": "node scripts/make-brochure.js",
     "social": "node scripts/make-social.js",
-    "plan90": "node scripts/make-plan90.js"
+    "plan90": "node scripts/make-plan90.js",
+    "extra": "node scripts/make-extra.js"
   },
   "dependencies": {
     "@libsql/client": "^0.15.15",
